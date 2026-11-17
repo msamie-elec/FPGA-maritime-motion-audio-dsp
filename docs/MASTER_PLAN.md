@@ -401,7 +401,7 @@ FPGA-maritime-motion-audio-dsp/
 |---|---|---|---|
 | M0 | Documented baseline + environment + frozen requirements | 🟨 In progress | Planning baseline committed, 2026-11-17; environment/requirements gate pending |
 | M1 | Golden coefficients + core FIR RTL simulation | ✅ PASS | Python 11/11; Icarus CI 9/9; local Vivado XSim 2025.2.1 9/9, 1,377 comparisons (screenshot 2026-11-17); [CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) |
-| M2 | Vivado synthesis/implementation | ⬜ Not started | — |
+| M2 | Vivado synthesis/implementation | 🟨 In progress | Clock-only FIR synthesis script, XDC and [instructions](FIR_M2_SYNTHESIS.md) added 2026-11-17; local synthesis and resource/timing results PENDING |
 | M3 | Physical FPGA serial loop + exact DSP vectors | ⬜ Not started | — |
 | M4 | Before/after stabilised ship video + metrics | ⬜ Not started | — |
 | M5 | GitHub v1.0 portfolio release | ⬜ Not started | — |
@@ -441,5 +441,7 @@ FPGA-maritime-motion-audio-dsp/
 - GitHub Mermaid support (these architecture and flowchart figures render directly inside Markdown): https://docs.github.com/en/get-started/writing-on-github/working-with-advanced-formatting/creating-diagrams
 
 ---
+
+**M2 engineering note (2026-11-17):** The repository now includes `scripts/run_fir_m2_synthesis.tcl`, `constraints/fir_m2_clock_only.xdc`, and [`docs/FIR_M2_SYNTHESIS.md`](FIR_M2_SYNTHESIS.md) for repeatable *FIR-only post-synthesis* reports. These files are unexecuted by the assistant and do not represent routed/board-level implementation evidence.
 
 **Current decision:** M1 reference and HDL simulation gates passed in GitHub CI (Icarus) and locally (Windows Vivado XSim). The next step is Vivado synthesis/resource/timing inspection (M2), followed by UART integration and physical FPGA tests (M3). Do not claim hardware correctness from simulation alone. This is a *plan*, not a declaration of completed implementation. Keep this master plan committed and update the milestone table as physical evidence accumulates.
