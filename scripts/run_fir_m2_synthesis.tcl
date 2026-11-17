@@ -20,8 +20,10 @@ if {[llength $previous] == 0} {
 }
 update_compile_order -fileset sources_1
 
-# Reset only the synthesis run to ensure source/constraint edits are included.
-reset_run synth_1
+# Reset only an existing launched synthesis run; leave a fresh 'Not started' run alone.
+if {[get_property PROGRESS [get_runs synth_1]] ne "0%"} {
+    reset_run synth_1
+}
 launch_runs synth_1 -jobs 4
 wait_on_run synth_1
 set progress [get_property PROGRESS [get_runs synth_1]]
