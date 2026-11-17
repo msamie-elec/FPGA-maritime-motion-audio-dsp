@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 578" role="img" aria-label="Illustrative synthetic camera-motion trajectory and filtering correction">
 <rect width="960" height="578" fill="#fff"/>
 <style>text{font-family:Arial,Helvetica,sans-serif;fill:#203145}.title{font-size:23px;font-weight:bold}.sub{font-size:15px;fill:#a33f37}.axis{font-size:14px;fill:#4f6371}.grid{stroke:#dfe6ed;stroke-width:1}.raw{fill:none;stroke:#2676b5;stroke-width:2}.smooth{fill:none;stroke:#e98227;stroke-width:3}</style>
-<text x="480" y="33" text-anchor="middle" class="title">PROJECT 2 — CAMERA-MOTION FILTERING CONCEPT</text>
+<text x="480" y="33" text-anchor="middle" class="title">CAMERA-MOTION FILTERING CONCEPT</text>
 <text x="480" y="58" text-anchor="middle" class="sub">Synthetic software illustration — NOT an FPGA measurement</text>
 <text x="72" y="92" font-size="17" font-weight="bold">Camera trajectory: original vs. smoothed</text>
 <line class="grid" x1="70" y1="104" x2="912" y2="104"/>
