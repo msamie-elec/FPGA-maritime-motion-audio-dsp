@@ -1,3 +1,4 @@
+`timescale 1ns / 1ps
 // SPDX-License-Identifier: MIT
 // 17-tap signed fixed-point motion FIR (build-time coefficient ROM).
 // Signed input/output: 24-bit Q16.8. Signed coeff: 16-bit Q1.15.
