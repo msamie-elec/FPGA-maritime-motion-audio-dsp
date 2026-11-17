@@ -57,7 +57,7 @@ The first SystemVerilog FIR module, generated Q1.15 coefficients, deterministic 
 - [Self-checking SystemVerilog testbench](tb/tb_fir_sequential.sv)
 - [Reference-only verification summary](evidence/m1_python_reference_summary.json)
 
-**Verified:** 11/11 Python reference tests PASS; **9/9 RTL regression cases PASS (1,377 checked samples, including reset)** on Icarus in [GitHub Actions](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) at source commit `d136142d43dd`. **Not yet verified:** Vivado synthesis/routed timing and physical FPGA operation.
+**Verified:** 11/11 Python reference tests PASS and **9/9 RTL regression cases PASS (1,377 checked samples, including reset)** in both Icarus [GitHub Actions](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) and local Windows Vivado 2025.2.1 XSim (console screenshot supplied 17 November 2026). **Pending:** FIR-only Vivado synthesis/resource assessment, routed timing and physical FPGA testing.
 
 From the repository root, with Python and pytest installed:
 
@@ -73,6 +73,14 @@ powershell -ExecutionPolicy Bypass -File scripts/run_fir_xsim.ps1
 ```
 
 The script generates coefficients/vectors, runs Python tests and **then runs the actual SystemVerilog testbench**. The output must report `FIR_RTL_REGRESSION_PASS` before the RTL gate is declared passed. An M1 source-level Vivado inspection project can be generated with `scripts/create_fir_m1_vivado.tcl`; it is not yet a board-programmable design.
+
+## M2 synthesis investigation — next step
+
+- [Clock-only 100 MHz synthesis procedure and report checklist](docs/FIR_M2_SYNTHESIS.md)
+- [Reproducible Vivado Tcl script for FIR-only synthesis](scripts/run_fir_m2_synthesis.tcl)
+- [10 ns FIR-core clock constraint](constraints/fir_m2_clock_only.xdc)
+
+The generated `maritime_fir_m1.xpr` is a **FIR-core inspection project**, not a board top. Synthesis and its utilization/timing estimates must not be presented as place-and-route timing closure or FPGA hardware validation.
 
 ## Reproducing results
 
