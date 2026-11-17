@@ -1,0 +1,13 @@
+# Force stable text line endings for cross-platform generated files and HDL.
+# Python scripts explicitly write LF bytes for checksum-covered artifacts.
+*.py    text eol=lf
+*.sv    text eol=lf
+*.svh   text eol=lf
+*.mem   text eol=lf
+*.txt   text eol=lf
+*.json  text eol=lf
+*.tcl   text eol=lf
+*.md    text eol=lf
+*.sh    text eol=lf
+*.svg   text eol=lf
+*.ps1   text eol=crlf
