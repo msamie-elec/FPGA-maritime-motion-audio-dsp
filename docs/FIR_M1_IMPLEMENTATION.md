@@ -107,6 +107,10 @@ A Windows PowerShell run initially failed the frozen-coefficient SHA-256 test be
 
 **Resolution:** `host/design_coefficients.py` and `host/generate_vectors.py` now emit raw UTF-8 **LF bytes** for all checksum-covered text and metadata; `.gitattributes` fixes repository text policies. The numerical coefficients, expected vectors and hardware RTL are unchanged. Re-run the existing `scripts/run_fir_xsim.ps1` on a fresh local checkout. **A successful local XSim result must be observed before claiming Vivado simulator verification.**
 
+### Vivado XSim elaboration compatibility (17 November 2026)
+
+A Windows Vivado 2025.2.1 validation run regenerated deterministic coefficients successfully and passed **11/11 Python tests**, then `xvlog` parsed both SystemVerilog modules. `xelab` initially stopped with `ERROR: [XSIM 43-4099]` because `tb_fir_sequential.sv` specified a timescale but `rtl/fir_sequential.sv` did not. The FIR source now begins with `\`timescale 1ns / 1ps`, matching the testbench. This is a **simulation directive only**, not an arithmetic or hardware timing change. **The corrected local XSim regression has not yet been observed to pass**; rerun `scripts/run_fir_xsim.ps1` from an updated checkout and retain the log.
+
 ### View M1 source hierarchy in Vivado
 
 ```powershell
