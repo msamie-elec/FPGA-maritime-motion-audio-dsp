@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="485" viewBox="0 0 1200 485" role="img" aria-label="Illustrative before and after of camera-view stabilization: tilted horizon versus level horizon, same ship">
+<rect width="1200" height="485" fill="#f6f9fc"/>
+<text x="600" y="39" font-size="29" font-family="Arial,Helvetica,sans-serif" fill="#1a394e" font-weight="700" text-anchor="middle">SHIPBOARD VIDEO STABILISATION — VISUAL TARGET</text>
+<g transform="translate(35,0)">
+<rect x="0" y="78" width="545" height="314" rx="10" fill="#102e46"/>
+<defs><clipPath id="clip35"><rect x="0" y="78" width="545" height="314" rx="10"/></clipPath></defs>
+<g clip-path="url(#clip35)"><g transform="rotate(-7 273 236)">
+<rect x="-55" y="20" width="660" height="239" fill="#c0d5e1"/>
+<path d="M-55 256 L600 256 L600 445 L-55 445Z" fill="#39758e"/>
+<path d="M-60 298 Q33 284 130 298 T333 296 T620 294 M-60 326 Q60 312 160 324 T362 322 T620 318 M-60 350 Q50 341 163 351 T365 347 T620 341" fill="none" stroke="#8ec1cf" stroke-width="4" opacity=".65"/>
+<g transform="translate(170 190)"><path d="M0 45 L290 45 L270 87 L27 82Z" fill="#233e53" stroke="#1b3447" stroke-width="2"/><path d="M20 84 Q140 98 274 86" stroke="#ad6254" stroke-width="6" fill="none"/><rect x="227" y="-6" width="40" height="50" fill="#e0e6e5"/><rect x="240" y="-20" width="14" height="14" fill="#e0e6e5"/><g stroke="#475c6b" stroke-width="3" fill="none"><path d="M71 45 L71 -35 L124 -18 L124 45"/><path d="M153 45 L153 -35 L205 -18 L205 45"/></g></g>
+</g></g>
+<path d="M0 78 L545 78" stroke="#cf734d" stroke-width="7"/>
+<rect x="12" y="91" width="254" height="36" rx="6" fill="#10293c" opacity=".84"/>
+<text x="25" y="115" font-size="18" font-family="Arial,Helvetica,sans-serif" fill="#fff" font-weight="700">BEFORE · CAMERA SHAKE</text>
+<path d="M244 231 L302 231 M273 202 L273 260" stroke="#fff" opacity=".85" stroke-width="1.5" stroke-dasharray="5,4"/>
+</g>
+<g transform="translate(620,0)">
+<rect x="0" y="78" width="545" height="314" rx="10" fill="#102e46"/>
+<defs><clipPath id="clip620"><rect x="0" y="78" width="545" height="314" rx="10"/></clipPath></defs>
+<g clip-path="url(#clip620)"><g transform="rotate(0 273 236)">
+<rect x="-55" y="20" width="660" height="239" fill="#c0d5e1"/>
+<path d="M-55 256 L600 256 L600 445 L-55 445Z" fill="#39758e"/>
+<path d="M-60 298 Q33 284 130 298 T333 296 T620 294 M-60 326 Q60 312 160 324 T362 322 T620 318 M-60 350 Q50 341 163 351 T365 347 T620 341" fill="none" stroke="#8ec1cf" stroke-width="4" opacity=".65"/>
+<g transform="translate(170 190)"><path d="M0 45 L290 45 L270 87 L27 82Z" fill="#233e53" stroke="#1b3447" stroke-width="2"/><path d="M20 84 Q140 98 274 86" stroke="#ad6254" stroke-width="6" fill="none"/><rect x="227" y="-6" width="40" height="50" fill="#e0e6e5"/><rect x="240" y="-20" width="14" height="14" fill="#e0e6e5"/><g stroke="#475c6b" stroke-width="3" fill="none"><path d="M71 45 L71 -35 L124 -18 L124 45"/><path d="M153 45 L153 -35 L205 -18 L205 45"/></g></g>
+</g></g>
+<path d="M0 78 L545 78" stroke="#3f9c83" stroke-width="7"/>
+<rect x="12" y="91" width="254" height="36" rx="6" fill="#10293c" opacity=".84"/>
+<text x="25" y="115" font-size="18" font-family="Arial,Helvetica,sans-serif" fill="#fff" font-weight="700">AFTER · STABILISED VIEW</text>
+<path d="M244 231 L302 231 M273 202 L273 260" stroke="#fff" opacity=".85" stroke-width="1.5" stroke-dasharray="5,4"/>
+</g>
+<text x="600" y="435" font-size="17" font-family="Arial,Helvetica,sans-serif" fill="#425869" text-anchor="middle">Concept illustration only: frame motion is estimated on the laptop; FIR smooths trajectories on the FPGA.</text>
+<text x="600" y="461" font-size="14" font-family="Arial,Helvetica,sans-serif" fill="#95604f" text-anchor="middle">Not a real result, live camera pipeline, or footage processed by FPGA hardware.</text>
+</svg>
