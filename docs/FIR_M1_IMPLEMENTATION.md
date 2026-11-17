@@ -1,6 +1,6 @@
 # FIR Core — Implementation and Verification (M1)
 
-**Status (2026-11-17):** Parameter-frozen 17-tap FIR RTL source and self-checking testbench written; Python reference regression **11/11 PASS** in the preparation environment. **SystemVerilog simulator and AMD Vivado were unavailable in that environment; HDL compile/simulation, implementation timing and physical FPGA behaviour remain UNVERIFIED.**
+**Status (2026-11-17):** 17-tap FIR RTL, 11/11 Python reference tests, and **9/9 Icarus SystemVerilog regression cases PASS** in GitHub Actions, checking **1,377 output samples** including a mid-operation reset test. [Verified CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) on source commit `d136142d43ddf174cacfc6ef8195e177682fd47f`. **Vivado synthesis, routed timing and physical FPGA behaviour remain UNVERIFIED.**
 
 See [master engineering plan](MASTER_PLAN.md) for project-level architecture, release gates and the video/audio application.
 
@@ -82,7 +82,7 @@ These are **software frequency-response calculations, not synthesis, physical FP
 
 The `.mem` files are six hexadecimal digits per 24-bit sample (two's complement) for `$readmemh`. `tests/vectors/vector_manifest.json` holds deterministic counts and SHA-256 values. The golden model is separately cross-checked against direct-form convolution and edge/saturation handling.
 
-### Required local verification (not performed yet)
+### Reproduce the verified FIR RTL regression on your own workstation
 
 **Option A: Icarus Verilog:**
 
@@ -96,7 +96,7 @@ bash scripts/run_fir_sim.sh
 powershell -ExecutionPolicy Bypass -File scripts/run_fir_xsim.ps1
 ```
 
-The testbench reports `FIR_RTL_REGRESSION_PASS` **only on a successful RTL run**, exercising 8 cases plus a mid-operation reset-cancellation test. Record the command, tool version and actual output transcript; **do not mark M1 passed until the RTL simulation is executed and its results inspected.**
+The testbench reports `FIR_RTL_REGRESSION_PASS` **only on successful RTL execution**. The [CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) has already passed all eight input-vector cases plus mid-operation reset cancellation, with no `$readmemh` range warnings. Re-running in your own Vivado environment gives independent confirmation and is still encouraged.
 
 ### View M1 source hierarchy in Vivado
 
@@ -112,6 +112,6 @@ For offline symmetric filtering (17 taps, 8-sample group delay), pad 8 copies of
 
 ## M1/M2 decision boundary
 
-**Done in this package:** source and testbench authored, coefficients frozen, vector data generated, numerical reference tests passed (11/11).
+**Completed:** source and testbench authored; frozen coefficients; deterministic vectors; 11/11 Python tests PASS; **9/9 RTL tests and 1,377 checks PASS in GitHub Actions**.
 
-**Still required:** RTL simulation on a real HDL simulator, Vivado synthesis and timing verification, USB-UART and framing implementation, hardware testing, video demonstration, and eventual publication claims. A successful Python test is not evidence that FPGA hardware is correct.
+**Still required:** Vivado synthesis and timing verification, USB-UART and framing implementation, hardware tests, video demonstration and eventual publication claims. Passing HDL simulation does **not** prove a routed FPGA implementation or physical-board functionality.

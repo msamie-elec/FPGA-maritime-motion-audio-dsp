@@ -1,0 +1,27 @@
+{
+  "release_stage": "M1 FIR-core simulation verification",
+  "evidence_date": "2026-11-17",
+  "source_commit": "d136142d43ddf174cacfc6ef8195e177682fd47f",
+  "github_actions_run_url": "https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765",
+  "github_actions_run_id": 44105628765,
+  "github_actions_job_id": 134117074849,
+  "outcome": "PASS",
+  "python_reference_tests": {
+    "passed": 11,
+    "failed": 0
+  },
+  "rtl_simulation": {
+    "simulator": "Icarus Verilog 12.0-3 (GitHub hosted Linux)",
+    "test_cases_passed": 9,
+    "test_cases_failed": 0,
+    "vector_samples": 1376,
+    "reset_cancellation_checks": 1,
+    "total_samples_checked": 1377,
+    "result_line": "FIR_RTL_REGRESSION_PASS tests=9 samples=1377",
+    "vector_loading_warnings": 0
+  },
+  "vivado_synthesis_performed": false,
+  "routed_timing_verified": false,
+  "physical_fpga_verified": false,
+  "caution": "Verification is restricted to Python and SystemVerilog behavioural simulation of the FIR core; no board-level UART or Vivado implementation results are claimed."
+}

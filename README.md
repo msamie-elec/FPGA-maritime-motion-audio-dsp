@@ -1,6 +1,6 @@
 # FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
-**Status:** Engineering plan established · **v1.0 hardware implementation and verification pending**
+**Status:** FIR core **RTL simulation verified (M1)** · **Vivado and physical Arty A7 implementation pending**
 
 A self-contained **AMD/Xilinx Artix-7 DSP engineering demonstrator** for smoothing shipborne camera-motion trajectories using a fixed-point **FIR filter implemented in FPGA hardware**, followed by a planned audio noise-reduction extension.
 
@@ -57,7 +57,7 @@ The first SystemVerilog FIR module, generated Q1.15 coefficients, deterministic 
 - [Self-checking SystemVerilog testbench](tb/tb_fir_sequential.sv)
 - [Reference-only verification summary](evidence/m1_python_reference_summary.json)
 
-**Verified so far:** 11/11 Python numerical reference tests passed (1,376 deterministic vectors prepared). **Not yet verified:** SystemVerilog simulation, routed Vivado timing and physical FPGA output.
+**Verified:** 11/11 Python reference tests PASS; **9/9 RTL regression cases PASS (1,377 checked samples, including reset)** on Icarus in [GitHub Actions](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) at source commit `d136142d43dd`. **Not yet verified:** Vivado synthesis/routed timing and physical FPGA operation.
 
 From the repository root, with Python and pytest installed:
 
@@ -76,4 +76,4 @@ The script generates coefficients/vectors, runs Python tests and **then runs the
 
 ## Reproducing results
 
-*Implementation/build/test commands will be added after working RTL, reference models, project scripts and physical FPGA results exist. No numerical performance or hardware pass claim is made at this planning stage.*
+*The FIR-core simulation commands are documented above. Complete board-level build/programming and measured video-reproduction instructions will be added only after hardware implementation. No FPGA performance measurements are claimed yet.*
