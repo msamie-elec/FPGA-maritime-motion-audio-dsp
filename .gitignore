@@ -1,0 +1,28 @@
+# Generated AMD Vivado projects, logs, and bitstreams
+build/
+.cache/
+.Xil/
+*.jou
+*.log
+*.str
+*.wdb
+*.wcfg
+*.bit
+*.bin
+*.dcp
+*.runs/
+*.cache/
+*.gen/
+*.hw/
+*.ip_user_files/
+# Python / OS
+__pycache__/
+.pytest_cache/
+*.pyc
+.venv/
+venv/
+.DS_Store
+Thumbs.db
+# Large/private video/audio (commit only specifically cleared demo assets)
+private_media/
+raw_clips/
