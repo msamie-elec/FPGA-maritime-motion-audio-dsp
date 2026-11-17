@@ -222,8 +222,8 @@ flowchart TD
 - [x] M0.1 Record the engineering charter, first release boundaries and initial documentation under version control (17 November 2026); no hardware results are claimed.
 - [ ] M0.2 Verify target board identity `xc7a35ticsg324-1L` and Vivado version/tool paths.
 - [ ] M0.3 Generate synthetic moving maritime video, known x/y trajectories and fixed-point test vectors.
-- [ ] M0.4 Design 17-tap symmetric low-pass coefficients in Python, quantise Q1.15, freeze coefficient file and its checksum.
-- [ ] M0.5 Implement `fir_sequential.sv`, its sample history, fixed-point math, `in_valid/in_ready/out_valid` and reset semantics.
+- [x] M0.4 Design and freeze symmetric 17-tap Q1.15 FIR coefficients; SHA-256 `dcd20f90279e4d32f88aface3dfc0be25e94569122e1cba2e365970989cf1e7b` (2026-11-17).
+- [x] M0.5 Author `fir_sequential.sv` and self-checking HDL testbench (2026-11-17); simulator execution and hardware behaviour remain unverified.
 - [ ] M0.6 Simulate impulse, constant, ramps, random signed values, overflow/saturation and back-to-back samples against bit-exact Python model.
 - [ ] M0.7 Run a preliminary Vivado synthesis and inspect inferred multiplier/DSP48, register and memory resources.
 
@@ -238,6 +238,13 @@ flowchart TD
 - [ ] M1.7 Apply release gate in §8, tag `v1.0` if—and only if—mandatory checks pass.
 
 **Hard stop:** After the v1.0 gate, release the physically demonstrated x/y stabilisation case study. Do not hold it hostage to rotation, arbitrary real-footage robustness, audio, a second board or a GUI framework. If a required test fails, report it accurately and do not label a release 'hardware-verified'. The 1–2 days are a **planning target**, not a guarantee.
+
+### M1 intermediate evidence — 17 November 2026
+
+- **Present:** `rtl/fir_sequential.sv`, frozen 17-tap coefficients, a separately calculated bit-exact Python reference, deterministic 1,376-sample vector package, self-checking RTL bench and simulation scripts.
+- **Completed in the preparation environment:** 11/11 **Python reference tests PASS**; see [FIR implementation note](FIR_M1_IMPLEMENTATION.md) and [machine-readable reference summary](../evidence/m1_python_reference_summary.json).
+- **Still to execute locally:** SystemVerilog compile and HDL simulation (T-01/T-02), Vivado synthesis/timing (T-04), then hardware UART (T-03/T-05). **No RTL simulator, Vivado or FPGA measurements were available in the preparation environment.**
+- **Do not mark M1 PASS** until the HDL regression passes and its actual transcript/evidence is recorded. The source package is not itself a verified bitstream.
 
 ## 7. Verification plan: four independent layers
 
@@ -391,7 +398,7 @@ FPGA-maritime-motion-audio-dsp/
 | Milestone | Description | Status | Evidence / date |
 |---|---|---|---|
 | M0 | Documented baseline + environment + frozen requirements | 🟨 In progress | Planning baseline committed, 2026-11-17; environment/requirements gate pending |
-| M1 | Golden coefficients + core FIR RTL simulation | ⬜ Not started | — |
+| M1 | Golden coefficients + core FIR RTL simulation | 🟨 In progress | Coefficients + RTL written; Python reference 11/11 PASS and 1,376 vectors; RTL simulation not yet executed (2026-11-17) |
 | M2 | Vivado synthesis/implementation | ⬜ Not started | — |
 | M3 | Physical FPGA serial loop + exact DSP vectors | ⬜ Not started | — |
 | M4 | Before/after stabilised ship video + metrics | ⬜ Not started | — |
@@ -433,4 +440,4 @@ FPGA-maritime-motion-audio-dsp/
 
 ---
 
-**Current decision:** Complete the remaining M0 checks, then begin M1. This is a *plan*, not a declaration of completed implementation. Keep this master plan committed and update the milestone table as physical evidence accumulates.
+**Current decision:** M1 source/reference package has been prepared; next gate is running self-checking RTL simulation on a supported simulator, followed by Vivado synthesis. Do not claim hardware correctness from Python-only results. This is a *plan*, not a declaration of completed implementation. Keep this master plan committed and update the milestone table as physical evidence accumulates.

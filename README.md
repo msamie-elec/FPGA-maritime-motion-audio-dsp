@@ -47,6 +47,33 @@ This is a **buffered offline demonstrator**, **not** real-time camera-frame proc
 
 All source code, build scripts, protocol descriptions, hardware measurements and test evidence will be maintained **within this repository**. A different project is not required to reproduce it.
 
+## M1 development package — FIR core
+
+The first SystemVerilog FIR module, generated Q1.15 coefficients, deterministic tests and independent Python fixed-point reference are available:
+
+- [FIR architecture, numeric format, test instructions and caveats](docs/FIR_M1_IMPLEMENTATION.md)
+- [FPGA FIR core](rtl/fir_sequential.sv)
+- [Frozen coefficients](rtl/fir_coefficients.txt)
+- [Self-checking SystemVerilog testbench](tb/tb_fir_sequential.sv)
+- [Reference-only verification summary](evidence/m1_python_reference_summary.json)
+
+**Verified so far:** 11/11 Python numerical reference tests passed (1,376 deterministic vectors prepared). **Not yet verified:** SystemVerilog simulation, routed Vivado timing and physical FPGA output.
+
+From the repository root, with Python and pytest installed:
+
+```bash
+python host/generate_vectors.py
+python -m pytest -q tests/test_fixed_point.py
+```
+
+On Windows with Vivado simulator tools available in PATH, run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File scripts/run_fir_xsim.ps1
+```
+
+The script generates coefficients/vectors, runs Python tests and **then runs the actual SystemVerilog testbench**. The output must report `FIR_RTL_REGRESSION_PASS` before the RTL gate is declared passed. An M1 source-level Vivado inspection project can be generated with `scripts/create_fir_m1_vivado.tcl`; it is not yet a board-programmable design.
+
 ## Reproducing results
 
 *Implementation/build/test commands will be added after working RTL, reference models, project scripts and physical FPGA results exist. No numerical performance or hardware pass claim is made at this planning stage.*
