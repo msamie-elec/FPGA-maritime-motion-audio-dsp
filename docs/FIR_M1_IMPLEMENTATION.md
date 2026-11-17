@@ -98,6 +98,15 @@ powershell -ExecutionPolicy Bypass -File scripts/run_fir_xsim.ps1
 
 The testbench reports `FIR_RTL_REGRESSION_PASS` **only on successful RTL execution**. The [CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) has already passed all eight input-vector cases plus mid-operation reset cancellation, with no `$readmemh` range warnings. Re-running in your own Vivado environment gives independent confirmation and is still encouraged.
 
+### Windows checksum reproducibility (17 November 2026)
+
+A Windows PowerShell run initially failed the frozen-coefficient SHA-256 test before XSim started. **This was a newline encoding issue, not a DSP coefficient or numerical error.** Python's `Path.write_text` translated LF to CRLF on Windows while the checksum was frozen using LF bytes on Linux:
+
+- LF / canonical SHA-256: `dcd20f90279e4d32f88aface3dfc0be25e94569122e1cba2e365970989cf1e7b`
+- CRLF / original Windows SHA-256: `7b88d166fcfe722aa1300516e648230a8e569db4050e0ada8bdfb409d1a867f2`
+
+**Resolution:** `host/design_coefficients.py` and `host/generate_vectors.py` now emit raw UTF-8 **LF bytes** for all checksum-covered text and metadata; `.gitattributes` fixes repository text policies. The numerical coefficients, expected vectors and hardware RTL are unchanged. Re-run the existing `scripts/run_fir_xsim.ps1` on a fresh local checkout. **A successful local XSim result must be observed before claiming Vivado simulator verification.**
+
 ### View M1 source hierarchy in Vivado
 
 ```powershell
