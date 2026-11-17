@@ -1,34 +1,52 @@
-# FPGA Maritime Motion & Audio DSP — Project 2
+# FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
-**Status: Planning / engineering baseline. No FPGA hardware result has yet been claimed.**
+**Status:** Engineering plan established · **v1.0 hardware implementation and verification pending**
 
-A phased **Artix-7 FPGA + Python** signal-processing demonstrator: first smooth shipboard **camera-motion trajectories** in a fixed-point FIR core and display side-by-side original/stabilised video; then reuse the filter engine for **audio interference attenuation** and an integrated A/V demo.
+A self-contained **AMD/Xilinx Artix-7 DSP engineering demonstrator** for smoothing shipborne camera-motion trajectories using a fixed-point **FIR filter implemented in FPGA hardware**, followed by a planned audio noise-reduction extension.
 
-> **Important scope:** The laptop decodes/warps video and estimates camera movement. The **physical FPGA processes motion trajectory samples**, not full images. All v1.0 tests are buffered/offline; later audio is also buffered. A successful demonstration will report measured results rather than infer them from simulated figures.
+![Maritime camera looking toward a vessel at sea — illustrative concept art](docs/figures/maritime_camera_scene.svg)
 
-## Start here
+*Original illustration of the intended maritime observation context — not real captured footage or an FPGA result.*
 
-- [**Master project plan: goals, full architecture, flowcharts, module hierarchy, verification, progress tracker**](docs/PROJECT2_MASTER_PLAN.md)
-- [Camera-motion illustration — synthetic software data, not hardware evidence](docs/figures/motion_trajectory_concept.svg)
-- [Audio DSP illustration — future extension, not hardware evidence](docs/figures/audio_spectrum_concept.svg)
+## What the demonstrator will show
 
-## Planned releases
+![Conceptual original and corrected maritime camera view](docs/figures/maritime_before_after_concept.svg)
 
-| Version | Purpose | Status |
+*Concept only. Once tested, this illustration will be accompanied by actual before-and-after frames computed from the **same** input video and **FPGA-returned** motion trajectories.*
+
+1. A laptop loads or synthesises a short shaky ship-observation video and extracts camera-motion coordinates.
+2. The laptop uploads **motion samples, not image frames**, to a Digilent Arty A7 over USB-UART.
+3. The FPGA smooths the trajectory in a fixed-point FIR engine and returns numerical results.
+4. Python/OpenCV applies geometric correction to the original frames and displays original vs stabilised video side by side.
+5. Self-checking RTL, fixed-point reference modelling and Vivado resource/timing reports validate the engineering claims.
+
+This is a **buffered offline demonstrator**, **not** real-time camera-frame processing, target tracking, or an RF/video interface on the FPGA. The independently moving target vessel may not stay fixed in the view.
+
+## Engineering plan and figures
+
+- [**Master engineering plan:** aims, objectives, full HDL hierarchy, architecture, control flow, methodology, test steps, verification gates and progress tracker](docs/MASTER_PLAN.md)
+- [Synthetic camera-motion trajectory plot — not hardware evidence](docs/figures/motion_trajectory_concept.svg)
+- [Illustrative audio noise-filtering spectrum — future release, not hardware evidence](docs/figures/audio_spectrum_concept.svg)
+
+## Scope and planned releases
+
+| Release | Capability | Current status |
 |---|---|---|
-| `v1.0` | FPGA FIR motion smoothing + synthetic maritime video before/after + physical verification | PLANNED |
-| `v1.1` | FPGA audio noise-reduction filter with waveform/spectra and playback | BACKLOG |
-| `v1.2` | Integrated synchronized audio/video before-and-after demo | BACKLOG |
-| `v2.x` | More advanced FIR structures, coefficient reconfiguration, image-processing extensions | OPTIONAL |
+| **v1.0** | Fixed-point FPGA camera-motion FIR; side-by-side ship video; bit-exact hardware proof | **PLANNED** |
+| **v1.1** | FIR-based audio interference attenuation with audible A/B comparison | BACKLOG |
+| **v1.2** | Synchronized before-and-after video and audio presentation | BACKLOG |
+| **v2.x** | Architectural optimisation and additional signal-processing features | OPTIONAL |
 
-## Hardware / software
+## Hardware and tools
 
-One Digilent Arty A7-35T (`xc7a35ticsg324-1L`), USB-UART, Vivado 2025.2.1, SystemVerilog, Python/NumPy/OpenCV. No additional boards, ADC, DAC or camera interface are needed for the v1.0 demonstration.
+- **FPGA:** 1 × Digilent Arty A7-35T, part `xc7a35ticsg324-1L`
+- **Connection:** onboard USB-UART and JTAG through the existing USB cable
+- **RTL/build:** SystemVerilog, Vivado (target version 2025.2.1), 100 MHz
+- **Host:** Python, NumPy, OpenCV, Matplotlib
+- **v1.0 filter target:** 17-tap fixed-point symmetric motion FIR; sequential multiply-accumulate
 
-## Related project
-
-[Project 1 — FPGA Low-Latency Ethernet](https://github.com/msamie-elec/FPGA-low-latency-ethernet) is complete and supplies a reference for RTL/UART methodology, self-checking tests, Vivado Tcl builds, physical measurements and GitHub release discipline.
+All source code, build scripts, protocol descriptions, hardware measurements and test evidence will be maintained **within this repository**. A different project is not required to reproduce it.
 
 ## Reproducing results
 
-*To be added only after working source, testbench, build scripts, hardware capture and validated evidence are committed.*
+*Implementation/build/test commands will be added after working RTL, reference models, project scripts and physical FPGA results exist. No numerical performance or hardware pass claim is made at this planning stage.*
