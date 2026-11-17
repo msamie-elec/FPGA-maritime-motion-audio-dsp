@@ -74,8 +74,8 @@ module tb_fir_sequential;
             test_input[j]=24'hx;
             test_expected[j]=24'hx;
         end
-        $readmemh(in_file,test_input);
-        $readmemh(out_file,test_expected);
+        $readmemh(in_file,test_input,0,len-1);
+        $readmemh(out_file,test_expected,0,len-1);
         do_reset();
         for (j=0;j<len;j++) begin
             if (^test_input[j] === 1'bx || ^test_expected[j] === 1'bx)
