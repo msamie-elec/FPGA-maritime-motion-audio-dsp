@@ -1,6 +1,6 @@
 # FIR Core — Implementation and Verification (M1)
 
-**Status (2026-11-17):** 17-tap FIR RTL, 11/11 Python reference tests, and **9/9 Icarus SystemVerilog regression cases PASS** in GitHub Actions, checking **1,377 output samples** including a mid-operation reset test. [Verified CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) on source commit `d136142d43ddf174cacfc6ef8195e177682fd47f`. **Vivado synthesis, routed timing and physical FPGA behaviour remain UNVERIFIED.**
+**Status (2026-11-17):** 17-tap FIR RTL, 11/11 Python reference tests, and **9/9 regression cases PASS** in both GitHub Actions (Icarus) and user-provided Windows Vivado 2025.2.1 XSim evidence, checking **1,377 output samples** including a mid-operation reset test. [Verified CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) on source commit `d136142d43ddf174cacfc6ef8195e177682fd47f`. **Vivado synthesis, routed timing and physical FPGA behaviour remain UNVERIFIED.**
 
 See [master engineering plan](MASTER_PLAN.md) for project-level architecture, release gates and the video/audio application.
 
@@ -109,7 +109,7 @@ A Windows PowerShell run initially failed the frozen-coefficient SHA-256 test be
 
 ### Vivado XSim elaboration compatibility (17 November 2026)
 
-A Windows Vivado 2025.2.1 validation run regenerated deterministic coefficients successfully and passed **11/11 Python tests**, then `xvlog` parsed both SystemVerilog modules. `xelab` initially stopped with `ERROR: [XSIM 43-4099]` because `tb_fir_sequential.sv` specified a timescale but `rtl/fir_sequential.sv` did not. The FIR source now begins with ``timescale 1ns / 1ps`, matching the testbench. This is a **simulation directive only**, not an arithmetic or hardware timing change. **The corrected local XSim regression has not yet been observed to pass**; rerun `scripts/run_fir_xsim.ps1` from an updated checkout and retain the log.
+A Windows Vivado 2025.2.1 validation run regenerated deterministic coefficients successfully and passed **11/11 Python tests**, then `xvlog` parsed both SystemVerilog modules. `xelab` initially stopped with `ERROR: [XSIM 43-4099]` because `tb_fir_sequential.sv` specified a timescale but `rtl/fir_sequential.sv` did not. The FIR source now begins with ``timescale 1ns / 1ps`, matching the testbench. This is a **simulation directive only**, not an arithmetic or hardware timing change. **Follow-up result:** User-provided PowerShell screenshot dated 17 November 2026 confirms local Vivado 2025.2.1 XSim elaboration and RTL regression **PASS**: 11/11 Python tests; eight input-vector cases plus reset cancellation; `FIR_RTL_REGRESSION_PASS tests=9 samples=1377`; process returned to PowerShell without a reported error. The screenshot was reviewed in the project conversation; a standalone local simulation log has not yet been committed to GitHub.
 
 ### View M1 source hierarchy in Vivado
 
@@ -125,6 +125,6 @@ For offline symmetric filtering (17 taps, 8-sample group delay), pad 8 copies of
 
 ## M1/M2 decision boundary
 
-**Completed:** source and testbench authored; frozen coefficients; deterministic vectors; 11/11 Python tests PASS; **9/9 RTL tests and 1,377 checks PASS in GitHub Actions**.
+**Completed:** source and testbench authored; frozen coefficients; deterministic vectors; 11/11 Python tests PASS; **9/9 RTL tests and 1,377 checks PASS in GitHub Actions (Icarus) and locally in Vivado 2025.2.1 XSim (user screenshot)**.
 
 **Still required:** Vivado synthesis and timing verification, USB-UART and framing implementation, hardware tests, video demonstration and eventual publication claims. Passing HDL simulation does **not** prove a routed FPGA implementation or physical-board functionality.
