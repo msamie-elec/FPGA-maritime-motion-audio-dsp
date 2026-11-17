@@ -1,0 +1,64 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="570" viewBox="0 0 1200 570" role="img" aria-label="Illustration of a vessel-mounted surveillance camera observing a distant ship over choppy seas">
+<defs>
+  <linearGradient id="sky" x2="0" y2="1"><stop stop-color="#b4d0e4"/><stop offset=".72" stop-color="#d6e1e7"/><stop offset="1" stop-color="#8caebd"/></linearGradient>
+  <linearGradient id="sea" x2="0" y2="1"><stop stop-color="#2c6076"/><stop offset="1" stop-color="#102d43"/></linearGradient>
+  <linearGradient id="ship" x2="0" y2="1"><stop stop-color="#354f63"/><stop offset="1" stop-color="#182a3b"/></linearGradient>
+  <filter id="soft"><feGaussianBlur stdDeviation="1.5"/></filter>
+</defs>
+<rect width="1200" height="570" fill="url(#sky)"/>
+<path d="M0 260 Q240 244 480 258 T900 255 T1200 259 L1200 320 L0 320Z" fill="#96b4c1" opacity=".32"/>
+<rect y="286" width="1200" height="284" fill="url(#sea)"/>
+<path d="M0 314 Q135 302 290 317 T645 320 T950 313 T1200 314" fill="none" stroke="#d2e2e7" opacity=".23" stroke-width="3"/>
+<path d="M -10 330 Q 130 326 260 330 T 610 331 T 980 330 T 1250 329" fill="none" stroke="#b0d4dc" stroke-opacity="0.38" stroke-width="1"/>
+<path d="M -10 346 Q 191 341.8 321 346 T 610 347 T 980 346 T 1250 345" fill="none" stroke="#689caf" stroke-opacity="0.40" stroke-width="1.07"/>
+<path d="M -10 362 Q 162 357.6 292 362 T 610 363 T 980 362 T 1250 361" fill="none" stroke="#689caf" stroke-opacity="0.42" stroke-width="1.1400000000000001"/>
+<path d="M -10 378 Q 133 373.4 263 378 T 610 379 T 980 378 T 1250 377" fill="none" stroke="#b0d4dc" stroke-opacity="0.43" stroke-width="1.21"/>
+<path d="M -10 394 Q 194 389.2 324 394 T 610 395 T 980 394 T 1250 393" fill="none" stroke="#689caf" stroke-opacity="0.45" stroke-width="1.28"/>
+<path d="M -10 410 Q 165 405 295 410 T 610 411 T 980 410 T 1250 409" fill="none" stroke="#689caf" stroke-opacity="0.47" stroke-width="1.35"/>
+<path d="M -10 426 Q 136 420.8 266 426 T 610 427 T 980 426 T 1250 425" fill="none" stroke="#b0d4dc" stroke-opacity="0.49" stroke-width="1.42"/>
+<path d="M -10 442 Q 197 436.6 327 442 T 610 443 T 980 442 T 1250 441" fill="none" stroke="#689caf" stroke-opacity="0.51" stroke-width="1.49"/>
+<path d="M -10 458 Q 168 452.4 298 458 T 610 459 T 980 458 T 1250 457" fill="none" stroke="#689caf" stroke-opacity="0.52" stroke-width="1.56"/>
+<path d="M -10 474 Q 139 468.2 269 474 T 610 475 T 980 474 T 1250 473" fill="none" stroke="#b0d4dc" stroke-opacity="0.54" stroke-width="1.6300000000000001"/>
+<path d="M -10 490 Q 200 484 330 490 T 610 491 T 980 490 T 1250 489" fill="none" stroke="#689caf" stroke-opacity="0.56" stroke-width="1.7000000000000002"/>
+<path d="M -10 506 Q 171 499.8 301 506 T 610 507 T 980 506 T 1250 505" fill="none" stroke="#689caf" stroke-opacity="0.58" stroke-width="1.77"/>
+<path d="M -10 522 Q 142 515.6 272 522 T 610 523 T 980 522 T 1250 521" fill="none" stroke="#b0d4dc" stroke-opacity="0.60" stroke-width="1.84"/>
+<path d="M -10 538 Q 203 531.4 333 538 T 610 539 T 980 538 T 1250 537" fill="none" stroke="#689caf" stroke-opacity="0.61" stroke-width="1.9100000000000001"/>
+<path d="M -10 554 Q 174 547.2 304 554 T 610 555 T 980 554 T 1250 553" fill="none" stroke="#689caf" stroke-opacity="0.63" stroke-width="1.98"/>
+<path d="M -10 570 Q 145 563 275 570 T 610 571 T 980 570 T 1250 569" fill="none" stroke="#b0d4dc" stroke-opacity="0.65" stroke-width="2.05"/>
+<path d="M -10 586 Q 206 578.8 336 586 T 610 587 T 980 586 T 1250 585" fill="none" stroke="#689caf" stroke-opacity="0.67" stroke-width="2.12"/>
+<!-- distant ship -->
+<g transform="translate(595 252)">
+  <path d="M16 60 L382 60 L360 101 Q224 118 51 99 L31 79 Z" fill="url(#ship)" stroke="#203544" stroke-width="2"/>
+  <path d="M46 102 Q211 119 357 104" fill="none" stroke="#b86155" stroke-width="7"/>
+  <path d="M41 57 L340 57 L340 63 L41 63Z" fill="#a28c7a"/>
+  <rect x="60" y="42" width="48" height="16" fill="#718798"/>
+  <rect x="130" y="42" width="48" height="16" fill="#718798"/>
+  <rect x="198" y="42" width="48" height="16" fill="#718798"/>
+  <path d="M289 59 L289 15 L306 15 L306 -3 L333 -3 L333 23 L351 23 L351 59Z" fill="#e2e4e0" stroke="#7a909c" stroke-width="2"/>
+  <rect x="316" y="-18" width="3" height="17" fill="#5e717f"/>
+  <g fill="#315064"><rect x="313" y="12" width="8" height="6"/><rect x="326" y="12" width="8" height="6"/><rect x="313" y="27" width="8" height="6"/><rect x="326" y="27" width="8" height="6"/></g>
+  <g stroke="#40576a" stroke-width="3" fill="none"><path d="M114 44 L114 -12 L156 3 M156 3 L156 48"/><path d="M204 44 L204 -12 L246 3 M246 3 L246 48"/></g>
+  <path d="M0 111 Q45 100 80 111 T166 112 T270 113 T400 110" stroke="#d0e7ec" stroke-width="6" fill="none" opacity=".7"/>
+</g>
+<!-- foreground camera and ship railing -->
+<path d="M0 465 Q155 446 334 474" stroke="#c6d0d2" stroke-width="13" fill="none"/>
+<path d="M0 488 Q170 470 361 492" stroke="#425764" stroke-width="7" fill="none"/>
+<path d="M80 477 L80 570 M265 479 L265 570" stroke="#98a8ac" stroke-width="8"/>
+<g transform="translate(89 155)">
+  <path d="M60 262 L87 262 L96 395 L40 395Z" fill="#d2d7d7" stroke="#7e929e" stroke-width="5"/>
+  <rect x="42" y="227" width="64" height="51" rx="13" fill="#a3b8bf" stroke="#718995" stroke-width="5"/>
+  <path d="M52 45 L220 45 L235 65 L235 162 L212 186 L76 184 L35 146 L35 82Z" fill="#dae2e0" stroke="#708693" stroke-width="6"/>
+  <path d="M58 30 L217 30 L240 53 L58 53Z" fill="#7f929b"/>
+  <rect x="119" y="68" width="108" height="87" rx="14" fill="#182f42"/>
+  <circle cx="174" cy="111" r="32" fill="#1a4d65" stroke="#8babb7" stroke-width="7"/>
+  <circle cx="174" cy="111" r="17" fill="#0f243b"/>
+  <circle cx="163" cy="99" r="9" fill="#7fc2d6" opacity=".55"/>
+  <path d="M72 185 L78 224 L111 239" fill="none" stroke="#9aafb8" stroke-width="16"/>
+  <path d="M37 138 Q-4 201 41 267" fill="none" stroke="#273a45" stroke-width="9"/>
+</g>
+<rect x="412" y="20" width="757" height="70" rx="12" fill="#102d43" opacity=".78"/>
+<text x="442" y="51" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="27" font-weight="700">MARITIME CAMERA-MOTION STABILISATION</text>
+<text x="442" y="75" fill="#d2e7ee" font-family="Arial, Helvetica, sans-serif" font-size="17">Shipborne observation · digital motion filtering · FPGA FIR accelerator</text>
+<rect x="737" y="521" width="437" height="30" rx="7" fill="#102c40" opacity=".8"/>
+<text x="753" y="542" fill="#fff" font-family="Arial, Helvetica, sans-serif" font-size="15">Illustrative scene — not captured or FPGA-processed footage</text>
+</svg>
