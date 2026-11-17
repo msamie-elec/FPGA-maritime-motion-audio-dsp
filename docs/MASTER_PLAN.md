@@ -244,6 +244,7 @@ flowchart TD
 - **Present:** `rtl/fir_sequential.sv`, frozen 17-tap coefficients, a separately calculated bit-exact Python reference, deterministic 1,376-sample vector package, self-checking RTL bench and simulation scripts.
 - **Completed in the preparation environment:** 11/11 **Python reference tests PASS**; see [FIR implementation note](FIR_M1_IMPLEMENTATION.md) and [machine-readable reference summary](../evidence/m1_python_reference_summary.json).
 - **Validated in GitHub Actions:** Icarus SystemVerilog compilation/simulation, including 9 passing directed/regression cases and 1,377 checked output samples; [run transcript](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) for `d136142d43ddf174cacfc6ef8195e177682fd47f`. This closes the **core FIR T-01/T-02 simulation scope**.
+- **Validated locally in Windows Vivado XSim 2025.2.1 (2026-11-17):** user-provided console screenshot confirms 11 Python tests PASS, successful `xvlog`/`xelab`, and `FIR_RTL_REGRESSION_PASS tests=9 samples=1377`. Screenshot reviewed in conversation; standalone log not yet committed. Synthesis and routed timing are still pending.
 - **Still required:** Vivado synthesis/implementation/timing (T-04), UART/protocol integration and regression (T-03), then physical Arty verification (T-05). **No Vivado or physical FPGA measurements have been performed.**
 - **M1 PASS (simulation only):** Actual HDL transcript is linked above. This does **not** constitute a verified Vivado build or FPGA bitstream.
 
@@ -399,7 +400,7 @@ FPGA-maritime-motion-audio-dsp/
 | Milestone | Description | Status | Evidence / date |
 |---|---|---|---|
 | M0 | Documented baseline + environment + frozen requirements | 🟨 In progress | Planning baseline committed, 2026-11-17; environment/requirements gate pending |
-| M1 | Golden coefficients + core FIR RTL simulation | ✅ PASS | Python 11/11 PASS; Icarus RTL 9/9 cases, 1,377 sample checks PASS; [CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) on `d136142d43dd` (2026-11-17) |
+| M1 | Golden coefficients + core FIR RTL simulation | ✅ PASS | Python 11/11; Icarus CI 9/9; local Vivado XSim 2025.2.1 9/9, 1,377 comparisons (screenshot 2026-11-17); [CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) |
 | M2 | Vivado synthesis/implementation | ⬜ Not started | — |
 | M3 | Physical FPGA serial loop + exact DSP vectors | ⬜ Not started | — |
 | M4 | Before/after stabilised ship video + metrics | ⬜ Not started | — |
@@ -441,4 +442,4 @@ FPGA-maritime-motion-audio-dsp/
 
 ---
 
-**Current decision:** M1 reference and actual Icarus HDL simulation gates have passed in GitHub CI. The next step is Vivado synthesis/resource/timing inspection (M2), followed by UART integration and physical FPGA tests (M3). Do not claim hardware correctness from simulation alone. This is a *plan*, not a declaration of completed implementation. Keep this master plan committed and update the milestone table as physical evidence accumulates.
+**Current decision:** M1 reference and HDL simulation gates passed in GitHub CI (Icarus) and locally (Windows Vivado XSim). The next step is Vivado synthesis/resource/timing inspection (M2), followed by UART integration and physical FPGA tests (M3). Do not claim hardware correctness from simulation alone. This is a *plan*, not a declaration of completed implementation. Keep this master plan committed and update the milestone table as physical evidence accumulates.
