@@ -79,6 +79,7 @@ def test_end_to_end_three_axis_software_ref(tmp_path):
     assert out.metrics['profile']=='Strong' and out.metrics['hardware_verified'] is False
     assert len(out.filtered_trajectory['theta'])==75
     assert (out.output_dir/'roll_comparison.png').exists()
+    assert 'original_roll_deg' in (out.output_dir/'motion_comparison.csv').read_text().splitlines()[0]
     assert (out.output_dir/'motion_estimation_diagnostics.json').exists()
     assert out.metrics['theta']['reduction_pct']>0
     assert out.side_by_side.exists()

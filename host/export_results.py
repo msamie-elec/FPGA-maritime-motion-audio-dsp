@@ -14,18 +14,23 @@ def export_result_files(trajectory_csv: Path, filtered: dict, metrics: dict,
     x,y=inputs_from_csv(trajectory_csv)
     if len(x)!=len(filtered['x']) or len(y)!=len(filtered['y']):
         raise AssertionError('Export: hardware/software trajectory length mismatch')
-    # Data CSV is auditable independently of video rendering.
+    # Three-axis CSV is auditable independently of video rendering.
+    # The legacy lab pathway has only X/Y, so its original CSV remains valid.
+    with Path(trajectory_csv).open(newline='',encoding='utf-8') as handle:
+        records=list(csv.DictReader(handle))
+    roll=[int(row['theta_q16_8']) for row in records] if records and 'theta_q16_8' in records[0] else None
+    if roll is not None and (len(roll)!=len(x) or len(filtered.get('theta',[]))!=len(x)):
+        raise AssertionError('Export: roll trajectory length mismatch')
     csvpath=output_dir/'motion_comparison.csv'
     with csvpath.open('w',newline='',encoding='utf-8') as f:
         writer=csv.writer(f)
-        writer.writerow(['frame','original_x_px','filtered_x_px','original_y_px','filtered_y_px'])
+        names=['frame','original_x_px','filtered_x_px','original_y_px','filtered_y_px']
+        if roll is not None:names+=['original_roll_deg','filtered_roll_deg']
+        writer.writerow(names)
         for n,(xx,fx,yy,fy) in enumerate(zip(x,filtered['x'],y,filtered['y'])):
-            writer.writerow([n,xx/256,fx/256,yy/256,fy/256])
-    # The roll axis is present for v0.7 footage, not for legacy lab trajectories.
-    import csv as _csv
-    with Path(trajectory_csv).open(newline="",encoding="utf-8") as handle:
-        records=list(_csv.DictReader(handle))
-    roll=[int(row["theta_q16_8"]) for row in records] if records and "theta_q16_8" in records[0] else None
+            row=[n,xx/256,fx/256,yy/256,fy/256]
+            if roll is not None:row.extend((roll[n]/256,filtered['theta'][n]/256))
+            writer.writerow(row)
     time=np.arange(len(x))/30
     source_mode=metrics['mode']
     fig=Figure(figsize=(11,6),dpi=120)
