@@ -21,6 +21,11 @@ def export_result_files(trajectory_csv: Path, filtered: dict, metrics: dict,
         writer.writerow(['frame','original_x_px','filtered_x_px','original_y_px','filtered_y_px'])
         for n,(xx,fx,yy,fy) in enumerate(zip(x,filtered['x'],y,filtered['y'])):
             writer.writerow([n,xx/256,fx/256,yy/256,fy/256])
+    # The roll axis is present for v0.7 footage, not for legacy lab trajectories.
+    import csv as _csv
+    with Path(trajectory_csv).open(newline="",encoding="utf-8") as handle:
+        records=list(_csv.DictReader(handle))
+    roll=[int(row["theta_q16_8"]) for row in records] if records and "theta_q16_8" in records[0] else None
     time=np.arange(len(x))/30
     source_mode=metrics['mode']
     fig=Figure(figsize=(11,6),dpi=120)
@@ -52,6 +57,14 @@ def export_result_files(trajectory_csv: Path, filtered: dict, metrics: dict,
     ax.grid(alpha=.2);ax.legend(loc='best');fig.tight_layout()
     specpath=output_dir/'motion_spectrum.png'
     fig.savefig(specpath,dpi=120)
+    if roll is not None and "theta" in filtered:
+        fig=Figure(figsize=(11,5),dpi=120);FigureCanvasAgg(fig)
+        rollax=fig.add_subplot(111)
+        rollax.plot(time,np.array(roll)/256,label="Original roll")
+        rollax.plot(time,np.array(filtered["theta"])/256,label="Filtered roll")
+        rollax.set(xlabel="Time (seconds)",ylabel="Roll (degrees)",title="Maritime camera roll correction")
+        rollax.grid(alpha=.2);rollax.legend();fig.tight_layout()
+        fig.savefig(output_dir/"roll_comparison.png",dpi=120)
     image_metric=metrics.get('image_stability',{})
     fig=Figure(figsize=(10,4.5),dpi=120)
     FigureCanvasAgg(fig)
@@ -93,6 +106,14 @@ def export_result_files(trajectory_csv: Path, filtered: dict, metrics: dict,
 **Independent measured jitter reduction (if valid):** {metrics.get('image_stability', {}).get('reduction_pct', 'N/A')}%
 
 **Input provenance / mode:** {metrics.get('input_type', 'UNSPECIFIED')}
+
+**Three-axis roll reduction:** {metrics.get('theta', {}).get('reduction_pct', 'N/A')}%
+
+**Stabilisation profile:** {metrics.get('profile', 'Legacy')}
+
+**Crop:** {metrics.get('crop', {})}
+
+**Motion estimation warnings:** {metrics.get('motion_quality_warnings', [])}
 
 **End-to-end wall-clock duration (includes video, host processing & UART):** {metrics['end_to_end_wall_s']:.3f} s
 

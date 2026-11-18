@@ -7,7 +7,9 @@ from __future__ import annotations
 from pathlib import Path
 from dataclasses import dataclass
 import json, time, shutil
-from motion_estimation import inspect_video, estimate_translation
+from motion_estimation import inspect_video
+from motion_estimation_v07 import estimate_three_axis
+from affine_stabilization import stabilise_affine
 from generate_synthetic_clip import generate
 from stabilize_video import stabilize, inputs_from_csv
 from export_results import export_result_files
@@ -42,17 +44,25 @@ def prepare_video(video: Path | None, trajectory: Path | None, output_dir: Path)
             raise ValueError(f'Trajectory CSV has {len(x)} rows but video has {info.frames} frames.')
         return video,trajectory,{'method':'user_supplied_trajectory_csv','frames':info.frames,'fps':info.fps}
     target=output_dir/'estimated_camera_trajectory.csv'
-    meta=estimate_translation(video,target)
+    meta=estimate_three_axis(video,target,output_dir/'motion_estimation_diagnostics.json')
     return video,target,meta
 
 
-def run_pipeline(video: Path | None, trajectory: Path | None, output_dir: Path, port: str | None) -> ProcessingResult:
+def run_pipeline(video: Path | None, trajectory: Path | None, output_dir: Path, port: str | None, profile: str = "Normal") -> ProcessingResult:
     start=time.monotonic()
     v,t,est=prepare_video(video,trajectory,output_dir)
-    output,metrics=stabilize(v,t,output_dir,port=port)
+    output,metrics=(stabilise_affine(v,t,output_dir,port=port,profile=profile)
+                    if video is not None and trajectory is None
+                    else stabilize(v,t,output_dir,port=port))
     filtered=json.loads((output_dir/'filtered_trajectory.json').read_text())
     metrics['estimation']=est
+    metrics['filter_profile']=profile if video is not None and trajectory is None else 'Legacy FIR'
+    metrics['motion_quality_warnings']=est.get('warnings',[]) 
     metrics['image_stability']=compare_image_stability(output)
+    q=metrics['image_stability']
+    metrics['visual_outcome']=(
+        'IMPROVED' if q.get('status')=='MEASURED' and q.get('reduction_pct',0)>0 else
+        'WORSE' if q.get('status')=='MEASURED' else 'INCONCLUSIVE')
     metrics['input_type']='SYNTHETIC_KNOWN_MOTION' if video is None else ('USER_SUPPLIED_TRAJECTORY_BENCH_TEST' if trajectory is not None else 'AUTO_ESTIMATION_NO_INJECTED_MOTION')
     # Preserve the original-recording SHA and zero-injection provenance in every run.
     manifest=v.parent/(v.stem+'_source_provenance.json')

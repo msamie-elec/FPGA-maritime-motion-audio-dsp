@@ -1,6 +1,10 @@
 # FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
+**v0.7 DEVELOPMENT CANDIDATE (18 November 2026):** Three-axis X/Y/roll software and GUI extensions, selectable Normal/Strong FPGA FIR passes, and fixed global crop added. **Local Linux Python software tests: 35/35 PASS. Clean Windows GUI and physical COM4 tests are pending; no new FPGA hardware claim.**
+
 **Current status:** The existing CLI-controlled FIR/UART implementation passed physical Arty A7-35T verification on COM4 (17 November 2026, user-provided logs). **The new interactive GUI is a separate development candidate awaiting local hardware GUI testing.** This independent Artix-7 / SystemVerilog / Python demonstrator uses a real FPGA **17-tap motion FIR** to smooth camera-motion trajectories, while OpenCV renders the corrected image frames on the host. A separate audio filtering extension is planned; audio is **not** implemented in this release.
+
+**New in v0.7:** [Three-axis geometry, validation, limitations and Windows commands](docs/THREE_AXIS_V07.md). The current `integration-v0.6` branch remains an earlier baseline; use `feature/three-axis-v0.7` for this candidate.
 
 **Start here:** [Fresh integration and Windows setup](docs/INTEGRATION_STATUS.md) · [Why videos can look unchanged](docs/VIDEO_STABILISATION_DIAGNOSTICS.md)
 
@@ -21,9 +25,9 @@
 
 > **v0.5 natural-footage release candidate:** [Real Footage Validation Guide](docs/REAL_FOOTAGE_VALIDATION.md) · [v0.5 Changelog](CHANGELOG_GUI_V05.md). GUI import now **preserves naturally recorded camera motion**, does not inject shake or supply a motion CSV, and evaluates **independent image-based stability** in addition to the FIR trajectory. This software upgrade has **26/26 host tests PASS** and desktop smoke PASS; the updated GUI has **not** been reverified against your physical FPGA, and no naturally shaky real clip has yet satisfied the real-footage release gate. The previously validated bitstream is unchanged.
 
-## Interactive laptop demonstrator — GUI v0.6 (natural camera shake)
+## Interactive laptop demonstrator — GUI v0.7 (natural camera shake and roll)
 
-The Windows desktop GUI supports **File → Open video** (30 fps, 18–496 frames, up to 1280×720), **Import natural footage** (no injected motion or CSV) or separate synthetic tests, physical FPGA COM-port selection (COM4 on the tested workstation), a real 3-case hardware self-test, and **side-by-side synchronized video playback in the same window**, with motion curves, spectra, shake-reduction metrics and evidence exports.
+The Windows desktop GUI now supports **three-axis X/Y/roll compensation**, **Normal/Strong FIR modes**, fixed image cropping with crop-loss reporting, and **File → Open video** (30 fps, 18–496 frames, up to 1280×720), **Import natural footage** (no injected motion or CSV) or separate synthetic tests, physical FPGA COM-port selection (COM4 on the tested workstation), a real 3-case hardware self-test, and **side-by-side synchronized video playback in the same window**, with motion curves, spectra, shake-reduction metrics and evidence exports.
 
 ```powershell
 python -m pip install -r .\host\requirements.txt

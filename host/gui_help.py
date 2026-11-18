@@ -8,17 +8,19 @@ HELP_SECTIONS=[
 
 1. Connect the Arty A7-35T and configure its existing verified bitstream
    through Vivado Hardware Manager if it was powered down/reconfigured.
-2. In this application, click Detect COM ports and select the board's port.
+2. Choose Normal (one FIR pass) or Strong (two FIR passes).
+   Both profiles use the same programmed FPGA bitstream.
+3. In this application, click Detect COM ports and select the board's port.
    COM4 worked on one development PC; it is NOT a universal value.
-3. Press Verify FPGA connection & FIR; the 3 bit-exact tests must pass.
-4. Click Import natural footage… and choose a genuine camera recording.
+4. Press Verify FPGA connection & FIR; the 3 bit-exact tests must pass.
+5. Click Import natural footage… and choose a genuine camera recording.
    This imports a short 30fps segment with NO added shake or CSV.
-5. Click Stabilise Video Using FPGA. The PC estimates camera X/Y from
-   actual footage, sends numeric samples to the FPGA FIR, reads them back
+6. Click Stabilise Video Using FPGA. The PC estimates camera X/Y and roll from
+   actual footage, sends X/Y/roll samples to the FPGA FIR, reads them back
    and verifies every returned sample against its bit-exact reference.
-6. Play ORIGINAL / STABILISED views together. Inspect trajectory and
+7. Play ORIGINAL / STABILISED views together. Inspect trajectory and
    spectrum graphs, then see independent image-content registration result.
-7. Open result folder to retain the video, plots, CSV and evidence report.
+8. Open result folder to retain the video, plots, CSV and evidence report.
 
 Unlike synthetic tests, the independent image-content result may be
 INCONCLUSIVE or NEGATIVE. A positive result is not guaranteed.
@@ -52,8 +54,10 @@ Verify FPGA connection & FIR
   match the independent Python model bit-for-bit before hardware claims.
 
 Stabilise Video Using FPGA
-  PC decodes video/estimates motion; FPGA filters X/Y trajectories;
+  PC decodes video/estimates motion; FPGA filters X/Y and roll trajectories;
   PC warp-reconstructs two synchronized views and exports evidence.
+  Normal = one FIR pass. Strong = two FIR passes for more smoothing.
+  Excessive smoothing may crop more image or suppress deliberate camera motion.
 
 Software preview only
   Python numerical reference. CLEARLY NOT FPGA hardware evidence.
@@ -118,8 +122,8 @@ VALIDATION
 
 LIMITS
   FPGA receives numeric 24-bit Q16.8 samples, not pixels.
-  Only global translation X/Y is compensated, not camera roll/tilt,
-  perspective, zoom, target's own movement or rolling-shutter effects.
+  Global translation and in-plane roll are compensated, not pitch perspective,
+  zoom, target's own movement or rolling-shutter effects.
   Buffered/offline, not live real-time camera streaming.
 ''')]
 

@@ -23,13 +23,15 @@ jobs:
       - name: Install Python tools and RTL simulator
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y iverilog
-          python -m pip install -q pytest numpy opencv-python-headless pyserial
+          sudo apt-get install -y iverilog ffmpeg
+          python -m pip install -q pytest numpy opencv-python-headless pyserial matplotlib pillow
       - name: Software numerical, protocol and synthetic shake regression
         run: |
           python host/design_coefficients.py
           python host/generate_vectors.py
           python -m pytest -q tests/test_fixed_point.py tests/test_serial_protocol.py tests/test_synthetic_maritime.py
+      - name: Three-axis host geometry and GUI pipeline regression
+        run: python -m pytest -q tests/test_gui_pipeline.py tests/test_natural_footage.py tests/test_three_axis_v07.py
       - name: Full UART packet, FIR, reset/recovery RTL regression
         run: bash scripts/run_maritime_sim.sh
       - name: Export software-only visual preview and validate quality target

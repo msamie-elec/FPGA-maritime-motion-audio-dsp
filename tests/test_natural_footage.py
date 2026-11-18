@@ -32,7 +32,7 @@ def test_real_import_does_not_add_shake_or_csv(tmp_path):
     assert 'source_provenance' in str(next(tmp_path.glob('*provenance.json')))
     assert not (tmp_path/'normalised.csv').exists()
     _,traj,evidence=prepare_video(dest,None,tmp_path/'out')
-    assert evidence['method']=='host_opencv_sparse_optical_flow_ransac_translation'
+    assert evidence['method']=='host_opencv_bidirectional_flow_se2_three_axis'
     assert traj.exists()
 
 

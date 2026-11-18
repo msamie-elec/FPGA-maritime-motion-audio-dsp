@@ -32,6 +32,7 @@ from generate_synthetic_clip import generate
 from fixed_point_golden import FirReference
 from fpga_serial_client import run_batch
 from stabilize_video import inputs_from_csv
+from affine_stabilization import read_path
 from gui_help import open_help
 from prepare_natural_footage import prepare_natural_footage, probe_raw
 
@@ -68,6 +69,8 @@ class MaritimeGUI:
         self.status = tk.StringVar(value='Ready. Choose a video or generate the example clip.')
         self.stat_x = tk.StringVar(value='—')
         self.stat_y = tk.StringVar(value='—')
+        self.stat_roll = tk.StringVar(value='—')
+        self.profile = tk.StringVar(value='Strong')
         self.stat_frames = tk.StringVar(value='—')
         self.stat_run = tk.StringVar(value='—')
         self.axis = tk.StringVar(value='X')
@@ -107,7 +110,7 @@ class MaritimeGUI:
         top=tk.Frame(self.window,bg=C['navy'],height=78)
         top.pack(fill='x');top.pack_propagate(False)
         label(top,'MARITIME  /  CAMERA STABILISATION',size=19,weight='bold',fg='#ffffff',bg=C['navy']).pack(side='left',padx=24)
-        self.header_pill=label(top,'ARTIX-7  •  FPGA FIR  •  OFFLINE X/Y',size=10,weight='bold',fg='#bbebf4',bg=C['navy'])
+        self.header_pill=label(top,'ARTIX-7  •  FPGA FIR  •  OFFLINE X/Y/ROLL',size=10,weight='bold',fg='#bbebf4',bg=C['navy'])
         self.header_pill.pack(side='right',padx=26)
 
         # Input and board controls are grouped together and do not grow vertically.
@@ -140,6 +143,9 @@ class MaritimeGUI:
         self.hw_btn.pack(side='left',padx=6)
         self.sw_btn=ttk.Button(r2,text='Software preview',command=lambda:self.process(False))
         self.sw_btn.pack(side='left',padx=6)
+        label(r2,'Profile',weight='bold',size=10,fg=C['muted']).pack(side='left',padx=(15,6))
+        self.profile_combo=ttk.Combobox(r2,textvariable=self.profile,values=['Normal','Strong'],state='readonly',width=9)
+        self.profile_combo.pack(side='left',padx=(0,3))
         info=tk.Frame(bar,bg=C['panel']);info.pack(fill='x',padx=16,pady=(1,9))
         label(info,'VIDEO  ',fg=C['teal'],weight='bold',size=9).pack(side='left')
         tk.Label(info,textvariable=self.video_info,font=('Segoe UI',10),fg=C['text'],bg=C['panel'],anchor='w').pack(side='left')
@@ -186,7 +192,7 @@ class MaritimeGUI:
         ttk.Button(analysis_head,text='Enlarge video ↑',command=lambda:self.focus_panel('video')).pack(side='right')
 
         metricrow=tk.Frame(analysis_box,bg=C['panel']);metricrow.pack(fill='x',padx=13,pady=(4,2))
-        for title,var in [('X MOTION REDUCTION',self.stat_x),('Y MOTION REDUCTION',self.stat_y),
+        for title,var in [('X MOTION REDUCTION',self.stat_x),('Y MOTION REDUCTION',self.stat_y),('ROLL REDUCTION',self.stat_roll),
                           ('VIDEO FRAMES',self.stat_frames),('PROCESSING DURATION',self.stat_run)]:
             tile=tk.Frame(metricrow,bg=C['pale'],highlightthickness=1,highlightbackground='#dcebf0')
             tile.pack(side='left',fill='x',expand=True,padx=3)
@@ -211,7 +217,7 @@ class MaritimeGUI:
         self.chartcanvas=FigureCanvasTkAgg(self.chartfig,master=charttab)
         axisrow=ttk.Frame(charttab);axisrow.pack(fill='x',pady=(3,0))
         ttk.Label(axisrow,text='Motion axis:').pack(side='left',padx=(10,5))
-        for v in ('X','Y'):
+        for v in ('X','Y','ROLL'):
             ttk.Radiobutton(axisrow,text=v,variable=self.axis,value=v,command=self.draw_plots).pack(side='left',padx=9)
         self.chartcanvas.get_tk_widget().pack(fill='both',expand=True,padx=4)
         self.specfig=Figure(figsize=(12,4),dpi=110,facecolor='#ffffff')
@@ -322,7 +328,7 @@ class MaritimeGUI:
             m=self.result.metrics
             mode='PHYSICAL FPGA — BIT-EXACT' if m.get('hardware_verified') else 'SOFTWARE REFERENCE ONLY'
             d.text(.03,.89,mode,fontsize=11,fontweight='bold',color='#007b91',va='top')
-            d.text(.03,.71,f"X reduction: {m['x']['reduction_pct']:.1f}%\nY reduction: {m['y']['reduction_pct']:.1f}%\nFrames: {m['frames']}\nDuration: {self.result.elapsed_s:.2f} s",fontsize=12,linespacing=1.5,va='top')
+            d.text(.03,.71,f"X reduction: {m['x']['reduction_pct']:.1f}%\nY reduction: {m['y']['reduction_pct']:.1f}%\nRoll reduction: {m.get('theta',{}).get('reduction_pct',float('nan')):.1f}%\nCrop retained: {m.get('crop',{}).get('area_retained_pct','N/A')}%\nProfile: {m.get('profile','Legacy')}\nFrames: {m['frames']}\nDuration: {self.result.elapsed_s:.2f} s",fontsize=10.5,linespacing=1.35,va='top')
             q=m.get('image_stability',{})
             d.text(.03,.14,('Image stability: '+str(q.get('status','Not evaluated'))),fontsize=11,va='top')
         fig.subplots_adjust(left=.07,right=.97,bottom=.09,top=.93,wspace=.27,hspace=.36)
@@ -482,11 +488,11 @@ class MaritimeGUI:
         base=ROOT/'build'/'gui_runs'
         import datetime
         dest=base/(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')+('_hardware' if hardware else '_software'))
-        t=threading.Thread(target=self._process_thread,args=(self.source,self.trajectory,dest,port),daemon=True)
+        t=threading.Thread(target=self._process_thread,args=(self.source,self.trajectory,dest,port,self.profile.get()),daemon=True)
         t.start()
 
-    def _process_thread(self,source,trajectory,dest,port):
-        try:self.events.put(('result',run_pipeline(source,trajectory,dest,port)))
+    def _process_thread(self,source,trajectory,dest,port,profile):
+        try:self.events.put(('result',run_pipeline(source,trajectory,dest,port,profile=profile)))
         except Exception as e:self.events.put(('error',(str(e),traceback.format_exc())))
 
     def hardware_test(self):
@@ -545,10 +551,11 @@ class MaritimeGUI:
     def _accept_result(self,result):
         self.result=result
         if hasattr(self,'after_title'):
-            self.after_title.configure(text='FPGA STABILISED — BIT-EXACT VERIFIED' if result.metrics.get('hardware_verified') else 'SOFTWARE PREVIEW — NOT FPGA')
+            self.after_title.configure(text='FPGA FILTERED — BIT-EXACT' if result.metrics.get('hardware_verified') else 'SOFTWARE PREVIEW — NOT FPGA')
         m=result.metrics
         self.stat_x.set(f"{m['x']['reduction_pct']:.1f}%")
         self.stat_y.set(f"{m['y']['reduction_pct']:.1f}%")
+        self.stat_roll.set(f"{m['theta']['reduction_pct']:.1f}%" if "theta" in m else "N/A")
         self.stat_frames.set(str(m['frames']))
         self.stat_run.set(f'{result.elapsed_s:.2f} s')
         if m.get('hardware_verified'):
@@ -557,10 +564,14 @@ class MaritimeGUI:
             self.validation.set('SOFTWARE REFERENCE ONLY — not FPGA hardware evidence')
         q=m.get('image_stability',{})
         if q.get('status')=='MEASURED':
-            self.image_metric.set(f"Independent image-content stability: {q['reduction_pct']:+.1f}% jitter reduction (phase correlation; quality-gated)")
+            self.image_metric.set(f"Independent image-content: {q['reduction_pct']:+.1f}% jitter reduction | {m.get('visual_outcome','UNASSESSED')} | {m.get('crop',{}).get('area_retained_pct','N/A')}% area retained")
         else:
             self.image_metric.set('Independent image-content stability: INCONCLUSIVE — do not claim visual improvement')
         self._log('RESULT: '+json.dumps(m,indent=2))
+        if m.get('motion_quality_warnings'):
+            self._log('MOTION ESTIMATION WARNING: '+', '.join(m['motion_quality_warnings']))
+        if m.get('crop',{}).get('warning'):
+            self._log('CROP WARNING: '+m['crop']['warning'])
         self._log('MP4 saved to: '+str(result.side_by_side))
         self.status.set('Completed. Play the two videos together, inspect curves, or open output folder.')
         self.draw_plots()
@@ -659,14 +670,21 @@ class MaritimeGUI:
             bx.text(.5,.5,'Frequency spectrum will appear after filtering',ha='center',va='center',transform=bx.transAxes)
         else:
             x,y=inputs_from_csv(self.result.trajectory)
-            a={'x':x,'y':y}[axis]
-            b=self.result.filtered_trajectory[axis]
+            try:
+                path=read_path(self.result.trajectory) if axis=='roll' else None
+            except (ValueError,KeyError):path=None
+            if axis=='roll' and path is None:
+                ax.text(.5,.5,'Roll trajectory requires v0.7 automatically estimated video',ha='center',va='center',transform=ax.transAxes)
+                bx.text(.5,.5,'No roll data in this legacy test',ha='center',va='center',transform=bx.transAxes)
+                self.chartcanvas.draw_idle();self.speccanvas.draw_idle();return
+            a=path['theta'] if axis=='roll' else {'x':x,'y':y}[axis]
+            b=self.result.filtered_trajectory['theta' if axis=='roll' else axis]
             t=np.arange(len(a))/30.0
             raw=np.asarray(a,dtype=float)/256
             fil=np.asarray(b,dtype=float)/256
             ax.plot(t,raw,label='Original camera motion',color='#557d98',linewidth=1.7)
             ax.plot(t,fil,label='FPGA-filtered' if self.result.metrics.get('hardware_verified') else 'Software-reference filtered',color='#05879b',linewidth=2.25)
-            ax.set(xlabel='Video time (seconds)',ylabel=f'{axis.upper()} camera displacement (pixels)',title=f'{axis.upper()}-axis trajectory')
+            ax.set(xlabel='Video time (seconds)',ylabel=('Roll (degrees)' if axis=='roll' else f'{axis.upper()} camera displacement (pixels)'),title=f'{axis.upper()}-axis trajectory')
             ax.grid(True,alpha=.25);ax.legend(fontsize=8)
             def amp(q):
                 # Remove DC so spectral change focuses on shaking rather than position offset.
@@ -691,7 +709,7 @@ class MaritimeGUI:
         self._release_video()
         self.result=None
         if hasattr(self,'after_title'): self.after_title.configure(text='AFTER PROCESSING')
-        for v in [self.stat_x,self.stat_y,self.stat_frames,self.stat_run]:v.set('—')
+        for v in [self.stat_x,self.stat_y,self.stat_roll,self.stat_frames,self.stat_run]:v.set('—')
         self.validation.set('No FPGA verification for current selection')
         self.image_metric.set('Independent image stability: not assessed')
         self.draw_plots()

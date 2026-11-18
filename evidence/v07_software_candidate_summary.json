@@ -1,0 +1,44 @@
+{
+  "status": "SOFTWARE-ONLY V0.7 BENCHMARK",
+  "date": "2026-11-18",
+  "notes": "User-supplied candidate AI-generated clips; actual ship recordings and FPGA COM4 hardware test pending. Jitter metric is image-registration proxy, not human-rated quality. Negative cases retained.",
+  "test_suite": "35/35 Python tests passed locally",
+  "trials": {
+    "06_Heavy_Seas_Close_Ship_960x540_30fps": {
+      "mode": "SOFTWARE REFERENCE ONLY",
+      "profile": "Strong",
+      "frames": 150,
+      "x_reduction_pct": 13.562397472366783,
+      "y_reduction_pct": 7.932983376329272,
+      "roll_reduction_pct": 14.690058545492079,
+      "independent_image_status": "MEASURED",
+      "independent_image_reduction_pct": 47.50783376766685,
+      "retained_area_pct": 88.19,
+      "physical_board_test": false
+    },
+    "07_Cargo_Ship_Storm_960x540_30fps": {
+      "mode": "SOFTWARE REFERENCE ONLY",
+      "profile": "Strong",
+      "frames": 150,
+      "x_reduction_pct": 3.7248782650681878,
+      "y_reduction_pct": 13.632163894079719,
+      "roll_reduction_pct": 8.306654783169709,
+      "independent_image_status": "MEASURED",
+      "independent_image_reduction_pct": -74.8662790591283,
+      "retained_area_pct": 95.42,
+      "physical_board_test": false
+    },
+    "04_Cargo_Ship_960x540_30fps": {
+      "mode": "SOFTWARE REFERENCE ONLY",
+      "profile": "Strong",
+      "frames": 150,
+      "x_reduction_pct": 36.89558895399273,
+      "y_reduction_pct": 33.19094982960209,
+      "roll_reduction_pct": 30.154892893350205,
+      "independent_image_status": "MEASURED",
+      "independent_image_reduction_pct": 89.19497002756238,
+      "retained_area_pct": 89.14,
+      "physical_board_test": false
+    }
+  }
+}
