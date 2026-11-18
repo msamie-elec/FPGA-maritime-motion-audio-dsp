@@ -1,0 +1,21 @@
+FPGA MARITIME VIDEO STABILISATION DSP — COMPLETE INTEGRATED DEVELOPMENT PACKAGE
+Package: FULL Integrated v0.2 (17 November 2026)
+
+This package is NOT the earlier FIR-core-only archive.
+Before running tests confirm these files exist from this folder:
+  host\requirements.txt
+  scripts\run_all_local.ps1
+  rtl\arty_a7_maritime_top.sv
+
+Windows PowerShell (open in this extracted folder):
+  Test-Path .\host\requirements.txt
+  Test-Path .\scripts\run_all_local.ps1
+  python -m pip install -r .\host\requirements.txt
+  powershell -ExecutionPolicy Bypass -File .\scripts\run_all_local.ps1
+
+Expected: the two Test-Path commands return True.
+The unified runner executes Python tests, XSim UART/FIR regression,
+software-only video preview, and Vivado synthesis / bitstream.
+Stop on the first error and share the entire console output.
+This is a development build: board-level validation is still pending.
+Generated Vivado files and physical-hardware reports are not yet verified.

@@ -38,7 +38,6 @@ def main() -> None:
     metadata = {'seed':RANDOM_SEED,'format':'signed24_Q16.8','coefficient_sha256':None,'cases':{},'reference_only':True}
     coeffs=load_coefficients()
     ref = FirReference(coeffs)
-    # Freeze LF at the byte level to keep vector SHA-256 stable on Windows/Linux.
     for name, samples in cases().items():
         ref.reset()
         expected = ref.process(samples)

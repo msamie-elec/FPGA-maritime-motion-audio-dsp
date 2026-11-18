@@ -1,6 +1,6 @@
 # FIR Core — Implementation and Verification (M1)
 
-**Status (2026-11-17):** 17-tap FIR RTL, 11/11 Python reference tests, and **9/9 regression cases PASS** in both GitHub Actions (Icarus) and user-provided Windows Vivado 2025.2.1 XSim evidence, checking **1,377 output samples** including a mid-operation reset test. [Verified CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) on source commit `d136142d43ddf174cacfc6ef8195e177682fd47f`. **Vivado synthesis, routed timing and physical FPGA behaviour remain UNVERIFIED.**
+**Status (2026-11-17):** Parameter-frozen 17-tap FIR RTL source and self-checking testbench written; Python reference regression **11/11 PASS** in the preparation environment. **SystemVerilog simulator and AMD Vivado were unavailable in that environment; HDL compile/simulation, implementation timing and physical FPGA behaviour remain UNVERIFIED.**
 
 See [master engineering plan](MASTER_PLAN.md) for project-level architecture, release gates and the video/audio application.
 
@@ -82,7 +82,7 @@ These are **software frequency-response calculations, not synthesis, physical FP
 
 The `.mem` files are six hexadecimal digits per 24-bit sample (two's complement) for `$readmemh`. `tests/vectors/vector_manifest.json` holds deterministic counts and SHA-256 values. The golden model is separately cross-checked against direct-form convolution and edge/saturation handling.
 
-### Reproduce the verified FIR RTL regression on your own workstation
+### Required local verification (not performed yet)
 
 **Option A: Icarus Verilog:**
 
@@ -96,20 +96,7 @@ bash scripts/run_fir_sim.sh
 powershell -ExecutionPolicy Bypass -File scripts/run_fir_xsim.ps1
 ```
 
-The testbench reports `FIR_RTL_REGRESSION_PASS` **only on successful RTL execution**. The [CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) has already passed all eight input-vector cases plus mid-operation reset cancellation, with no `$readmemh` range warnings. Re-running in your own Vivado environment gives independent confirmation and is still encouraged.
-
-### Windows checksum reproducibility (17 November 2026)
-
-A Windows PowerShell run initially failed the frozen-coefficient SHA-256 test before XSim started. **This was a newline encoding issue, not a DSP coefficient or numerical error.** Python's `Path.write_text` translated LF to CRLF on Windows while the checksum was frozen using LF bytes on Linux:
-
-- LF / canonical SHA-256: `dcd20f90279e4d32f88aface3dfc0be25e94569122e1cba2e365970989cf1e7b`
-- CRLF / original Windows SHA-256: `7b88d166fcfe722aa1300516e648230a8e569db4050e0ada8bdfb409d1a867f2`
-
-**Resolution:** `host/design_coefficients.py` and `host/generate_vectors.py` now emit raw UTF-8 **LF bytes** for all checksum-covered text and metadata; `.gitattributes` fixes repository text policies. The numerical coefficients, expected vectors and hardware RTL are unchanged. Re-run the existing `scripts/run_fir_xsim.ps1` on a fresh local checkout. **A successful local XSim result must be observed before claiming Vivado simulator verification.**
-
-### Vivado XSim elaboration compatibility (17 November 2026)
-
-A Windows Vivado 2025.2.1 validation run regenerated deterministic coefficients successfully and passed **11/11 Python tests**, then `xvlog` parsed both SystemVerilog modules. `xelab` initially stopped with `ERROR: [XSIM 43-4099]` because `tb_fir_sequential.sv` specified a timescale but `rtl/fir_sequential.sv` did not. The FIR source now begins with ``timescale 1ns / 1ps`, matching the testbench. This is a **simulation directive only**, not an arithmetic or hardware timing change. **Follow-up result:** User-provided PowerShell screenshot dated 17 November 2026 confirms local Vivado 2025.2.1 XSim elaboration and RTL regression **PASS**: 11/11 Python tests; eight input-vector cases plus reset cancellation; `FIR_RTL_REGRESSION_PASS tests=9 samples=1377`; process returned to PowerShell without a reported error. The screenshot was reviewed in the project conversation; a standalone local simulation log has not yet been committed to GitHub.
+The testbench reports `FIR_RTL_REGRESSION_PASS` **only on a successful RTL run**, exercising 8 cases plus a mid-operation reset-cancellation test. Record the command, tool version and actual output transcript; **do not mark M1 passed until the RTL simulation is executed and its results inspected.**
 
 ### View M1 source hierarchy in Vivado
 
@@ -125,6 +112,6 @@ For offline symmetric filtering (17 taps, 8-sample group delay), pad 8 copies of
 
 ## M1/M2 decision boundary
 
-**Completed:** source and testbench authored; frozen coefficients; deterministic vectors; 11/11 Python tests PASS; **9/9 RTL tests and 1,377 checks PASS in GitHub Actions (Icarus) and locally in Vivado 2025.2.1 XSim (user screenshot)**.
+**Done in this package:** source and testbench authored, coefficients frozen, vector data generated, numerical reference tests passed (11/11).
 
-**Still required:** Vivado synthesis and timing verification, USB-UART and framing implementation, hardware tests, video demonstration and eventual publication claims. Passing HDL simulation does **not** prove a routed FPGA implementation or physical-board functionality.
+**Still required:** RTL simulation on a real HDL simulator, Vivado synthesis and timing verification, USB-UART and framing implementation, hardware testing, video demonstration, and eventual publication claims. A successful Python test is not evidence that FPGA hardware is correct.

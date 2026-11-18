@@ -1,87 +1,122 @@
 # FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
-**Status:** FIR core **RTL simulation verified (M1)** · **Vivado and physical Arty A7 implementation pending**
+**Current status:** The existing CLI-controlled FIR/UART implementation passed physical Arty A7-35T verification on COM4 (17 November 2026, user-provided logs). **The new interactive GUI is a separate development candidate awaiting local hardware GUI testing.** This independent Artix-7 / SystemVerilog / Python demonstrator uses a real FPGA **17-tap motion FIR** to smooth camera-motion trajectories, while OpenCV renders the corrected image frames on the host. A separate audio filtering extension is planned; audio is **not** implemented in this release.
 
-A self-contained **AMD/Xilinx Artix-7 DSP engineering demonstrator** for smoothing shipborne camera-motion trajectories using a fixed-point **FIR filter implemented in FPGA hardware**, followed by a planned audio noise-reduction extension.
+**Start here:** [Fresh integration and Windows setup](docs/INTEGRATION_STATUS.md) · [Why videos can look unchanged](docs/VIDEO_STABILISATION_DIAGNOSTICS.md)
 
-![Maritime camera looking toward a vessel at sea — illustrative concept art](docs/figures/maritime_camera_scene.svg)
+![Maritime scene illustration](docs/figures/maritime_camera_scene.svg)
 
-*Original illustration of the intended maritime observation context — not real captured footage or an FPGA result.*
+![Conceptual stabilised scene](docs/figures/maritime_before_after_concept.svg)
 
-## What the demonstrator will show
+*Both diagrams are conceptual, not FPGA output.*
 
-![Conceptual original and corrected maritime camera view](docs/figures/maritime_before_after_concept.svg)
 
-*Concept only. Once tested, this illustration will be accompanied by actual before-and-after frames computed from the **same** input video and **FPGA-returned** motion trajectories.*
+> **v0.6 interface redesign — candidate:** High-DPI Windows text rendering, larger Segoe UI labels, resizable video/analysis workspace, enlarged plot tabs, separate full-size engineering dashboard, and a formatted Help guide with A+/A− text controls. All existing FPGA RTL, XDC constraints, UART protocol and bitstream scripts are unchanged. The design was desktop-smoke-tested and the **30/30 existing host tests passed** in this environment. **The redesigned GUI still requires testing on the physical Windows/Arty A7 setup.**
 
-1. A laptop loads or synthesises a short shaky ship-observation video and extracts camera-motion coordinates.
-2. The laptop uploads **motion samples, not image frames**, to a Digilent Arty A7 over USB-UART.
-3. The FPGA smooths the trajectory in a fixed-point FIR engine and returns numerical results.
-4. Python/OpenCV applies geometric correction to the original frames and displays original vs stabilised video side by side.
-5. Self-checking RTL, fixed-point reference modelling and Vivado resource/timing reports validate the engineering claims.
+![v0.6 UI main workspace preview; no physical FPGA result](docs/screenshots/gui_v06_workspace.jpg)
 
-This is a **buffered offline demonstrator**, **not** real-time camera-frame processing, target tracking, or an RF/video interface on the FPGA. The independently moving target vessel may not stay fixed in the view.
+*GUI design screenshot. Empty initial state; no physical result asserted.*
 
-## Engineering plan and figures
+[View the v0.6 expanded software-only engineering dashboard](docs/screenshots/gui_v06_expanded_software_preview.jpg) · [View the new operator guide](docs/screenshots/gui_v06_help.jpg) · [Read the v0.6 UI guide](docs/GUI_DESIGN_V06.md).
 
-- [**Master engineering plan:** aims, objectives, full HDL hierarchy, architecture, control flow, methodology, test steps, verification gates and progress tracker](docs/MASTER_PLAN.md)
-- [Synthetic camera-motion trajectory plot — not hardware evidence](docs/figures/motion_trajectory_concept.svg)
-- [Illustrative audio noise-filtering spectrum — future release, not hardware evidence](docs/figures/audio_spectrum_concept.svg)
+> **v0.5 natural-footage release candidate:** [Real Footage Validation Guide](docs/REAL_FOOTAGE_VALIDATION.md) · [v0.5 Changelog](CHANGELOG_GUI_V05.md). GUI import now **preserves naturally recorded camera motion**, does not inject shake or supply a motion CSV, and evaluates **independent image-based stability** in addition to the FIR trajectory. This software upgrade has **26/26 host tests PASS** and desktop smoke PASS; the updated GUI has **not** been reverified against your physical FPGA, and no naturally shaky real clip has yet satisfied the real-footage release gate. The previously validated bitstream is unchanged.
 
-## Scope and planned releases
+## Interactive laptop demonstrator — GUI v0.6 (natural camera shake)
 
-| Release | Capability | Current status |
-|---|---|---|
-| **v1.0** | Fixed-point FPGA camera-motion FIR; side-by-side ship video; bit-exact hardware proof | **PLANNED** |
-| **v1.1** | FIR-based audio interference attenuation with audible A/B comparison | BACKLOG |
-| **v1.2** | Synchronized before-and-after video and audio presentation | BACKLOG |
-| **v2.x** | Architectural optimisation and additional signal-processing features | OPTIONAL |
-
-## Hardware and tools
-
-- **FPGA:** 1 × Digilent Arty A7-35T, part `xc7a35ticsg324-1L`
-- **Connection:** onboard USB-UART and JTAG through the existing USB cable
-- **RTL/build:** SystemVerilog, Vivado (target version 2025.2.1), 100 MHz
-- **Host:** Python, NumPy, OpenCV, Matplotlib
-- **v1.0 filter target:** 17-tap fixed-point symmetric motion FIR; sequential multiply-accumulate
-
-All source code, build scripts, protocol descriptions, hardware measurements and test evidence will be maintained **within this repository**. A different project is not required to reproduce it.
-
-## M1 development package — FIR core
-
-The first SystemVerilog FIR module, generated Q1.15 coefficients, deterministic tests and independent Python fixed-point reference are available:
-
-- [FIR architecture, numeric format, test instructions and caveats](docs/FIR_M1_IMPLEMENTATION.md)
-- [FPGA FIR core](rtl/fir_sequential.sv)
-- [Frozen coefficients](rtl/fir_coefficients.txt)
-- [Self-checking SystemVerilog testbench](tb/tb_fir_sequential.sv)
-- [Reference-only verification summary](evidence/m1_python_reference_summary.json)
-
-**Verified:** 11/11 Python reference tests PASS and **9/9 RTL regression cases PASS (1,377 checked samples, including reset)** in both Icarus [GitHub Actions](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) and local Windows Vivado 2025.2.1 XSim (console screenshot supplied 17 November 2026). **Pending:** FIR-only Vivado synthesis/resource assessment, routed timing and physical FPGA testing.
-
-From the repository root, with Python and pytest installed:
-
-```bash
-python host/generate_vectors.py
-python -m pytest -q tests/test_fixed_point.py
-```
-
-On Windows with Vivado simulator tools available in PATH, run:
+The Windows desktop GUI supports **File → Open video** (30 fps, 18–496 frames, up to 1280×720), **Import natural footage** (no injected motion or CSV) or separate synthetic tests, physical FPGA COM-port selection (COM4 on the tested workstation), a real 3-case hardware self-test, and **side-by-side synchronized video playback in the same window**, with motion curves, spectra, shake-reduction metrics and evidence exports.
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/run_fir_xsim.ps1
+python -m pip install -r .\host\requirements.txt
+powershell -ExecutionPolicy Bypass -File .\scripts\run_gui_tests.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
 ```
 
-The script generates coefficients/vectors, runs Python tests and **then runs the actual SystemVerilog testbench**. The output must report `FIR_RTL_REGRESSION_PASS` before the RTL gate is declared passed. An M1 source-level Vivado inspection project can be generated with `scripts/create_fir_m1_vivado.tcl`; it is not yet a board-programmable design.
+See [Interactive GUI Demonstrator](docs/INTERACTIVE_GUI_DEMONSTRATOR.md). The physical board top has BTN0 reset; the GUI's **Reset view** does not reset the board. Existing v0.2 bitstream may be reused. For actual video motion estimation, OpenCV on the PC supplies samples to the **physical FPGA FIR**; no image pixels are sent to the FPGA. Software preview and real hardware execution are separately labelled.
 
-## M2 synthesis investigation — next step
+**GUI physical hardware testing on Windows remains pending** even though previous CLI hardware smoke/video validation on COM4 passed. Real recorded video outcome may be positive, negative or inconclusive.
 
-- [Clock-only 100 MHz synthesis procedure and report checklist](docs/FIR_M2_SYNTHESIS.md)
-- [Reproducible Vivado Tcl script for FIR-only synthesis](scripts/run_fir_m2_synthesis.tcl)
-- [10 ns FIR-core clock constraint](constraints/fir_m2_clock_only.xdc)
+## Architecture
 
-The generated `maritime_fir_m1.xpr` is a **FIR-core inspection project**, not a board top. Synthesis and its utilization/timing estimates must not be presented as place-and-route timing closure or FPGA hardware validation.
+```mermaid
+flowchart LR
+  PC["PC: video + ground-truth/estimated motion"] --> USB["USB-UART binary with CRC"]
+  USB --> RX["FPGA UART RX + packet decode"]
+  RX --> MEM["512 x 24-bit input BRAM"]
+  MEM --> FIR["17-tap signed fixed-point FIR / DSP48 MAC"]
+  FIR --> MEMO["512 x 24-bit result BRAM"]
+  MEMO --> TX["FPGA packet TX + UART"]
+  TX --> PC
+  PC --> DISPLAY["OpenCV original vs stabilised video"]
+```
 
-## Reproducing results
+The FPGA handles **24-bit motion samples, not pixels**, and video runs offline in buffered jobs. This is not a video-input, live stabilisation or tracking system. The planned fixed FIR processes one trajectory axis at a time. An independent FPGA sample comparison is required before the host may label results as **PHYSICAL FPGA - BIT-EXACT VERIFIED**.
 
-*The FIR-core simulation commands are documented above. Complete board-level build/programming and measured video-reproduction instructions will be added only after hardware implementation. No FPGA performance measurements are claimed yet.*
+## Included
+
+- `rtl/`: standalone Arty A7-35T board top, UART receiver/transmitter, request parser/response serializer with CRC16, synchronous sample RAM, FIR batch controller and the original signed 17-tap MAC.
+- `tb/`: complete UART-to-FIR UART regression with valid impulse, CRC rejection and post-error recovery, alongside core regression.
+- `host/`: reproducible synthetic maritime footage, bit-exact Python reference, CRC protocol, pyserial hardware client, and video comparison software.
+- `constraints/`: official Digilent Arty A7-35T pin assignments for 100 MHz clock, USB-UART, reset button and four LEDs.
+- `scripts/`: single-step Vivado board project, synthesis/bitstream script, XSim and Icarus regressions.
+- `docs/`: [master plan](docs/MASTER_PLAN.md), [UART protocol](docs/PROTOCOL.md), [board build procedure](docs/BOARD_INTEGRATION.md) and [software demo instructions](host/GETTING_STARTED.md).
+
+## First run (software demo)
+
+```powershell
+python -m pip install -r host/requirements.txt
+python -m pytest -q tests/test_fixed_point.py tests/test_serial_protocol.py tests/test_synthetic_maritime.py
+python host/stabilize_video.py --out build/maritime_demo
+```
+
+This creates `build/maritime_demo/software_preview_before_after.mp4` (labelled **SOFTWARE REFERENCE ONLY**), trajectory CSV and `metrics.json`. Do not present these metrics as FPGA hardware results.
+
+## Full RTL regression (Vivado XSim on Windows)
+
+```powershell
+$env:PATH = "C:\AMDDesignTools\2025.2.1\Vivado\bin;$env:PATH"
+powershell -ExecutionPolicy Bypass -File .\scripts\run_maritime_xsim.ps1
+```
+
+Look for `MARITIME_UART_FIR_REGRESSION_PASS`. This tests actual serial bits and FIR processing in the RTL, not just Python.
+
+## One-command local validation and Vivado board build
+
+Close Vivado GUI, then run:
+
+```powershell
+powershell -ExecutionPolicy Bypass -File .\scripts\run_all_local.ps1
+```
+
+This runs Python tests, complete UART/FIR XSim regression, a software-only maritime preview, then synthesis/implementation and bitstream. The local script **does not claim physical hardware success**. Run `python host/hardware_smoke.py --port COM4` after flashing the bitstream (COM4 was the working port in the observed test; verify it when reconnecting).
+
+## Vivado board build and programming
+
+**Close the Vivado GUI**, then run:
+
+```powershell
+& "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source scripts/build_maritime_bitstream.tcl
+```
+
+Examine the DRC, resource and routed timing reports before programming. Open `build/vivado_maritime_a7/maritime_a7.xpr` to inspect RTL hierarchy and synthesized schematic. See [board integration guide](docs/BOARD_INTEGRATION.md) for actual COM-port testing. A user-provided local Vivado 2025.2.1 run has shown bitstream generation and physical UART/FIR success. The updated GUI v0.5 has not yet been verified with hardware.
+
+```powershell
+python host/stabilize_video.py --out build/maritime_demo --port COM4
+```
+
+Replace `COM4` if Windows assigns your Arty UART a different COM port. The host aborts if any FPGA returned sample disagrees with the bit-exact model. **The physical CLI hardware test has passed on COM4; future GUI runs still require their own verification.**
+
+## Next releases
+
+- `v1.0`: hardware-verified maritime camera-motion smoothing, timing and resource reports, before/after video.
+- `v1.1`: independent buffered 16 kHz audio FIR demonstration.
+- `v1.2`: synchronized audio/video demonstration.
+
+The project is intended as a **self-contained reproducible engineering portfolio** with source, benchmarks and provenance. Licensed under the MIT License; independent third-party dependencies retain their own terms.
+
+## Natural maritime footage + Help (GUI v0.5)
+
+**The primary test now requires natural camera movement recorded at sea.** Open **Import natural footage…** and select the original video; the app takes up to five seconds, standardises to 30 fps, and preserves the source's real motion. No synthetic shake or hand-entered motion CSV is added in this mode.
+
+The GUI's **Help / Steps** menu explains board programming, COM-port detection, all controls, actual OpenCV-to-FPGA processing and validation. Read the [real-footage engineering validation plan](docs/REAL_FOOTAGE_VALIDATION.md) before making performance claims. The GUI reports both FIR trajectory smoothing and a **separate, quality-gated image-content movement result**. A clip that cannot be measured may show `INCONCLUSIVE` rather than a fabricated improvement.
+
+The tool does not bundle a third-party recording or claim that a natural shake test has passed. Suggested independent sources include [ViCoS MODD2](https://data.vicos.si/borja/viamaro/index.html) and [Wikimedia OOI vessel-mounted videos](https://commons.wikimedia.org/wiki/Category:Ocean_Observatories_Initiative_videos), subject to source-specific permissions and actual visible camera shake.

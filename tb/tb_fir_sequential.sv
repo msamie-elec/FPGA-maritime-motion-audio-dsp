@@ -26,7 +26,6 @@ module tb_fir_sequential;
         @(negedge clk); rst=1'b1; in_valid=1'b0;
         repeat (3) @(negedge clk);
         rst=1'b0;
-        #1; // Allow combinational in_ready to settle after reset release.
         if (!in_ready) $fatal(1,"Core not ready after reset");
     end
     endtask
@@ -74,8 +73,8 @@ module tb_fir_sequential;
             test_input[j]=24'hx;
             test_expected[j]=24'hx;
         end
-        $readmemh(in_file,test_input,0,len-1);
-        $readmemh(out_file,test_expected,0,len-1);
+        $readmemh(in_file,test_input);
+        $readmemh(out_file,test_expected);
         do_reset();
         for (j=0;j<len;j++) begin
             if (^test_input[j] === 1'bx || ^test_expected[j] === 1'bx)

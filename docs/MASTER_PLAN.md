@@ -2,11 +2,11 @@
 
 > **Master engineering plan and progress tracker — v1.0 planning baseline**  
 > **Established:** 17 November 2026  
-> **Status:** IN DEVELOPMENT — FIR-core Python reference and HDL simulation PASS (M1); Vivado implementation, physical FPGA validation and stabilisation performance are NOT yet verified.  
+> **Status:** PLANNED — no RTL implementation, Vivado result, physical FPGA validation or video stabilisation performance is claimed here.  
 > **Primary hardware:** one existing Digilent Arty A7-35T (`xc7a35ticsg324-1L`), laptop and USB cable.  
-> **Development environment:** AMD Vivado 2025.2.1 (target version), SystemVerilog, Python, OpenCV, NumPy/Matplotlib.  
+> **Development environment:** AMD Vivado 2025.2.1 (as used for the completed Ethernet portfolio), SystemVerilog, Python, OpenCV, NumPy/Matplotlib.  
 > **Release policy:** complete a narrowly scoped **v1.0 video-motion demo first** (target: 1–2 focused working days); audio and integration are separately gated extensions.  
-> **Repository:** [`msamie-elec/FPGA-maritime-motion-audio-dsp`](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp) — version-controlled design and evidence.
+> **Repository:** [`msamie-elec/FPGA-maritime-motion-audio-dsp`](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp) — private at project initiation (17 November 2026).
 
 ## 0. Read this first: project charter and honest scope
 
@@ -16,7 +16,7 @@
 
 **Problem statement:** A ship-mounted camera can suffer pitch, roll and vibration. A recorded view may shake despite the observed scene being relatively stable. After estimating unwanted camera motion, we want to smooth the camera-motion trajectory with deterministic fixed-point FPGA hardware and warp the *original* frames accordingly. The other observed ship may still move independently: **this is view stabilisation, not target lock or tracking**.
 
-**Standalone engineering deliverable:** All RTL components, filter coefficients, UART protocol definitions, simulation tests, Vivado build scripts, Python analysis code and reproduction instructions must be present in this repository. No preceding project is required to understand, build or verify the system.
+**Stand-alone project:** All design, tests, hardware limits and evidence are recorded here, with no required context from other projects.
 
 ### Project boundaries
 
@@ -72,17 +72,9 @@ flowchart LR
 
 **Interpretation:** Video frames never traverse the UART. For v1.0 the FPGA receives only **sampled motion coordinates** (much smaller than pixel arrays). This limitation makes the one-board design realistic and keeps the total job manageable.
 
-![Conceptual maritime camera observation scene — original illustration, not recorded footage](figures/maritime_camera_scene.svg)
-
-*Figure 1. Illustrative shipboard camera observing a distant vessel across rough seas. This is an application scene, not a captured experiment.*
-
-![Conceptual original versus stabilised ship observation, not FPGA measurements](figures/maritime_before_after_concept.svg)
-
-*Figure 2. The desired side-by-side presentation. It illustrates camera-motion correction; the actual before/after demo must be generated from the same video footage and hardware-returned motion samples.*
-
 ![Illustrative camera-motion smoothing, generated in software, not FPGA data](figures/motion_trajectory_concept.svg)
 
-*Figure 3. Synthetic motion trajectories demonstrate the desired effect. Replace this illustration with measured FPGA traces in the verified release.*
+*Figure 1. Synthetic motion trajectories demonstrate the desired effect. Replace this illustration with measured FPGA traces in the verified release.*
 
 ## 3. Video-processing theory and algorithm
 
@@ -114,6 +106,10 @@ Use **N = 17** and symmetric coefficients (`h[k] = h[16-k]`) calculated by a win
 
 **Do not run an FIR on image RGB intensity to stabilise motion.** This would smooth/blur pixels, not compensate geometric camera shake.
 
+![Conceptual maritime vessel under observation](figures/maritime_camera_scene.svg)
+
+*Illustrative maritime scene, not hardware output.*
+
 ### 3.3 Visual result and measurement
 
 Show two synchronized panels from *the same input frames*, **Before** and **After**, with optional overlays displaying the original and FPGA-smoothed trajectory. Measure on the deterministic synthetic data: input-vs-output high-frequency trajectory RMS, landmark/background displacement RMS after warping, cropping/black borders, and exactly matched frame counts. A moving target ship need not be stationary after background stabilisation.
@@ -123,7 +119,7 @@ Show two synchronized panels from *the same input frames*, **Before** and **Afte
 ```text
 arty_a7_maritime_top.sv                   TOP: clock, reset, UART, buttons, LED
 ├── reset_sync.sv                         synchronous reset release
-├── uart_rx.sv                            local UART receiver (provenance recorded)
+├── uart_rx.sv                            locally verified UART implementation
 ├── uart_packet_rx.sv                     request decode, count, CRC/status
 ├── fir_job_controller.sv                 IDLE/LOAD/RUN/READ/ERROR FSM
 │   ├── sample_buffer.sv                  FPGA input BRAM/distributed RAM
@@ -136,7 +132,7 @@ arty_a7_maritime_top.sv                   TOP: clock, reset, UART, buttons, LED
 │   │   └── scale, saturate, out_valid    completion handshake
 │   └── result_buffer.sv                  buffered return samples
 ├── uart_packet_tx.sv                     response packet + CRC
-└── uart_tx.sv                            reused/adapted with documented licensing
+└── uart_tx.sv                            locally verified UART implementation
 ```
 
 Only **the named `.sv` files** are independent modules. The five items indented inside `fir_sequential.sv` are internal datapath/register elements (not separate Vivado entities) for minimal v1.0 complexity. `sample_tick_gen.sv` is optional in batch mode; for batch jobs the FIR job controller can initiate the next sample when `ready=1` and measure processing cycles. For the 30 fps application, host motion samples arrive in batches; the FPGA does **not** operate as a native 30 fps video interface.
@@ -219,17 +215,17 @@ flowchart TD
 
 **Day 1 — Design, reference and simulation**
 
-- [x] M0.1 Record the engineering charter, first release boundaries and initial documentation under version control (17 November 2026); no hardware results are claimed.
+- [x] M0.1 Create private GitHub repository and commit this planning baseline (17 November 2026); no hardware results are claimed.
 - [ ] M0.2 Verify target board identity `xc7a35ticsg324-1L` and Vivado version/tool paths.
 - [ ] M0.3 Generate synthetic moving maritime video, known x/y trajectories and fixed-point test vectors.
-- [x] M0.4 Design and freeze symmetric 17-tap Q1.15 FIR coefficients; SHA-256 `dcd20f90279e4d32f88aface3dfc0be25e94569122e1cba2e365970989cf1e7b` (2026-11-17).
-- [x] M0.5 Author `fir_sequential.sv` and self-checking HDL testbench (2026-11-17); simulator execution and hardware behaviour remain unverified.
-- [x] M0.6 Execute self-checking Icarus HDL simulation for impulse/DC/ramp/random/extremes/zeros/shake and reset cancellation: 9/9 cases PASS, 1,377 output checks; [GitHub CI evidence](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765), source `d136142d43dd` (2026-11-17).
+- [ ] M0.4 Design 17-tap symmetric low-pass coefficients in Python, quantise Q1.15, freeze coefficient file and its checksum.
+- [ ] M0.5 Implement `fir_sequential.sv`, its sample history, fixed-point math, `in_valid/in_ready/out_valid` and reset semantics.
+- [ ] M0.6 Simulate impulse, constant, ramps, random signed values, overflow/saturation and back-to-back samples against bit-exact Python model.
 - [ ] M0.7 Run a preliminary Vivado synthesis and inspect inferred multiplier/DSP48, register and memory resources.
 
 **Day 2 — Physical FPGA and publication gate**
 
-- [ ] M1.1 Implement UART packet RX/TX, CRC, buffers, controller, LED status and A7 top-level; provide and test all local UART RTL with licensing/provenance recorded.
+- [ ] M1.1 Implement UART packet RX/TX, CRC, buffers, controller, LED status and A7 top-level; integrate verified UART RTL where licensing permits.
 - [ ] M1.2 Implement `create_project.tcl`, `build.tcl`, correct A7 XDC; synthesize, place-and-route, generate bitstream and audit setup/hold/unconstrained paths.
 - [ ] M1.3 Program physical Arty A7; prove single known vector, then 256-sample job, then repeated/negative/large-value jobs.
 - [ ] M1.4 Send x/y trajectory jobs from Python; verify exact counts/CRC, reject invalid frames and compare FPGA outputs to the frozen fixed-point model.
@@ -238,15 +234,6 @@ flowchart TD
 - [ ] M1.7 Apply release gate in §8, tag `v1.0` if—and only if—mandatory checks pass.
 
 **Hard stop:** After the v1.0 gate, release the physically demonstrated x/y stabilisation case study. Do not hold it hostage to rotation, arbitrary real-footage robustness, audio, a second board or a GUI framework. If a required test fails, report it accurately and do not label a release 'hardware-verified'. The 1–2 days are a **planning target**, not a guarantee.
-
-### M1 intermediate evidence — 17 November 2026
-
-- **Present:** `rtl/fir_sequential.sv`, frozen 17-tap coefficients, a separately calculated bit-exact Python reference, deterministic 1,376-sample vector package, self-checking RTL bench and simulation scripts.
-- **Completed in the preparation environment:** 11/11 **Python reference tests PASS**; see [FIR implementation note](FIR_M1_IMPLEMENTATION.md) and [machine-readable reference summary](../evidence/m1_python_reference_summary.json).
-- **Validated in GitHub Actions:** Icarus SystemVerilog compilation/simulation, including 9 passing directed/regression cases and 1,377 checked output samples; [run transcript](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) for `d136142d43ddf174cacfc6ef8195e177682fd47f`. This closes the **core FIR T-01/T-02 simulation scope**.
-- **Validated locally in Windows Vivado XSim 2025.2.1 (2026-11-17):** user-provided console screenshot confirms 11 Python tests PASS, successful `xvlog`/`xelab`, and `FIR_RTL_REGRESSION_PASS tests=9 samples=1377`. Screenshot reviewed in conversation; standalone log not yet committed. Synthesis and routed timing are still pending.
-- **Still required:** Vivado synthesis/implementation/timing (T-04), UART/protocol integration and regression (T-03), then physical Arty verification (T-05). **No Vivado or physical FPGA measurements have been performed.**
-- **M1 PASS (simulation only):** Actual HDL transcript is linked above. This does **not** constitute a verified Vivado build or FPGA bitstream.
 
 ## 7. Verification plan: four independent layers
 
@@ -343,8 +330,8 @@ FPGA-maritime-motion-audio-dsp/
 ├── rtl/
 │   ├── arty_a7_maritime_top.sv
 │   ├── reset_sync.sv
-│   ├── uart_rx.sv                   # standalone and tested; record provenance
-│   ├── uart_tx.sv                   # standalone and tested; record provenance
+│   ├── uart_rx.sv                   # provenance recorded if reused
+│   ├── uart_tx.sv                   # provenance recorded if reused
 │   ├── uart_packet_rx.sv
 │   ├── uart_packet_tx.sv
 │   ├── fir_job_controller.sv
@@ -399,12 +386,12 @@ FPGA-maritime-motion-audio-dsp/
 
 | Milestone | Description | Status | Evidence / date |
 |---|---|---|---|
-| M0 | Documented baseline + environment + frozen requirements | 🟨 In progress | Planning baseline committed, 2026-11-17; environment/requirements gate pending |
-| M1 | Golden coefficients + core FIR RTL simulation | ✅ PASS | Python 11/11; Icarus CI 9/9; local Vivado XSim 2025.2.1 9/9, 1,377 comparisons (screenshot 2026-11-17); [CI run](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44105628765) |
-| M2 | Vivado synthesis/implementation | 🟨 In progress | Clock-only FIR synthesis script, XDC and [instructions](FIR_M2_SYNTHESIS.md) added 2026-11-17; local synthesis and resource/timing results PENDING |
-| M3 | Physical FPGA serial loop + exact DSP vectors | ⬜ Not started | — |
-| M4 | Before/after stabilised ship video + metrics | ⬜ Not started | — |
-| M5 | GitHub v1.0 portfolio release | ⬜ Not started | — |
+| M0 | Requirements and source baseline | ✅ Completed | Development code and requirements present; release evidence pending |
+| M1 | FIR RTL and numerical verification | ✅ PASS | 11 Python + 9 RTL regression cases, 1,377 checked samples; Windows Vivado XSim screenshot (17 November 2026) |
+| M2 | Vivado synthesis and routed timing | ✅ Passed locally; warnings remain | User-provided Vivado reports, 17 November 2026; internal 100 MHz timing PASS; constraint/DRC warnings documented |
+| M3 | FPGA COM4 numerical UART/FIR validation | ✅ CLI PASS | User-provided console evidence: 3/3 hardware jobs bit-exact PASS; v0.6 GUI physical test pending |
+| M4 | Before/after video and independent evidence | 🟨 Partial | Synthetic CLI test PASS; natural maritime videos show mixed/negative results; GUI hardware and natural footage gates pending |
+| M5 | GitHub portfolio release v1.0 | ⬜ Not approved | Current source is v0.6 integration candidate, not final acceptance |
 | M6 | Audio FIR v1.1 | ⬜ Backlog | — |
 | M7 | Combined A/V v1.2 | ⬜ Backlog | — |
 
@@ -414,9 +401,9 @@ FPGA-maritime-motion-audio-dsp/
 
 | Date | Decision | Rationale |
 |---|---|---|
-| 2026-11-17 | Present this project as a **standalone DSP engineering demonstrator** | All requirements, design and verification evidence must be understandable within this repository |
+| 2026-11-17 | Define a standalone maritime FPGA DSP project | Independent, reproducible portfolio with no prerequisite projects |
 | 2026-11-17 | First release is camera-motion FIR only | Shortest credible hardware-to-visual case study |
-| 2026-11-17 | Use A7-35T and SystemVerilog | Available hardware and toolchain; maintain a reproducible RTL/build workflow |
+| 2026-11-17 | Use A7-35T and SystemVerilog | Arty A7 availability and reusable internal UART RTL |
 | 2026-11-17 | v1.0 uses **17-tap symmetric motion FIR** (not 32-tap audio-style baseline) | Integer 8-frame alignment and short video-motion smoothing window |
 | 2026-11-17 | FPGA filters *motion trajectories*, not pixels | Accurate and feasible description of v1.0 |
 | 2026-11-17 | Audio and integration are future separate release gates | Prevent indefinite scope expansion |
@@ -442,6 +429,24 @@ FPGA-maritime-motion-audio-dsp/
 
 ---
 
-**M2 engineering note (2026-11-17):** The repository now includes `scripts/run_fir_m2_synthesis.tcl`, `constraints/fir_m2_clock_only.xdc`, and [`docs/FIR_M2_SYNTHESIS.md`](FIR_M2_SYNTHESIS.md) for repeatable *FIR-only post-synthesis* reports. These files are unexecuted by the assistant and do not represent routed/board-level implementation evidence.
+**Current decision (18 November 2026):** Consolidated v0.6 source is being validated as a complete integration candidate. See [integration status](INTEGRATION_STATUS.md) and [video diagnostics](VIDEO_STABILISATION_DIAGNOSTICS.md). The primary unresolved gate is independent video-stability improvement on real recorded shaky footage, followed by physical GUI validation. Do not claim a verified natural-footage result yet.
 
-**Current decision:** M1 reference and HDL simulation gates passed in GitHub CI (Icarus) and locally (Windows Vivado XSim). The next step is Vivado synthesis/resource/timing inspection (M2), followed by UART integration and physical FPGA tests (M3). Do not claim hardware correctness from simulation alone. This is a *plan*, not a declaration of completed implementation. Keep this master plan committed and update the milestone table as physical evidence accumulates.
+---
+
+## Interactive GUI extension — development checkpoint (17 November 2026)
+
+**Observed on physical Arty A7-35T:** Vivado implementation generated a bitstream; user-supplied local CLI results for **COM4** show 3/3 bit-exact UART/FIR jobs and FPGA-returned synthetic video trajectories with >30% high-frequency motion reduction in both axes. The log shows `PHYSICAL_FPGA_VALIDATION_PASS`. These results support the prior CLI system; the newly added GUI itself has not yet been exercised on the user's laptop.
+
+**Scope adjustment:** The first public-facing demonstrator will be a standalone **laptop GUI**, not a command-line script that silently saves video. Required interactions: File → Open video; automatic or user-supplied camera-motion estimate; select/refresh COM port; hardware smoke test; physical FPGA processing; original/filtered synchronised on-screen playback; interactive X/Y plots/spectrum; saved CSV/metrics/PNG/MP4; explicit software-only preview and honest result status.
+
+**Reference design:** [Interactive GUI Demonstrator](INTERACTIVE_GUI_DEMONSTRATOR.md). This add-on uses the existing bitstream; a board reset is available through physical BTN0, while the GUI reset clears only presentation state. **Supported imported video** is bounded by the 512-sample UART protocol and 30 fps FIR coefficient calibration.
+
+**GUI acceptance gates**
+- [x] UI/controller written and Python host unit tests passing (23/23 at package construction).
+- [x] Generated/supplied 30 fps video and automatic motion-estimation pipeline tested using synthetic clip.
+- [x] GUI smoke tested in a desktop virtual-display environment: open app, load demo, show split video, seek and plot.
+- [ ] GUI physical FPGA mode with **COM4** verified on local Windows laptop.
+- [ ] Real user video input (translation-dominant motion) tested and assessed for sufficient background features.
+- [ ] Final measured screenshot/demo recorded, and only then merged to the repository's portfolio release branch.
+
+No completion or performance claim for arbitrary shipboard footage, camera rotation correction, target tracking, or FPGA full-frame video processing is made at this checkpoint.
