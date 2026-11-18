@@ -26,6 +26,7 @@ module tb_fir_sequential;
         @(negedge clk); rst=1'b1; in_valid=1'b0;
         repeat (3) @(negedge clk);
         rst=1'b0;
+        #1; // Allow combinational in_ready to settle after reset deassertion.
         if (!in_ready) $fatal(1,"Core not ready after reset");
     end
     endtask
