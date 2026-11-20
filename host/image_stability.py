@@ -59,29 +59,62 @@ def _trace(frames:list[np.ndarray])->dict:
             'median_response':float(np.median(scores))}
 
 
-def compare_image_stability(side_by_side:Path, max_frames:int=496)->dict:
-    """Measure residual image motion in original and corrected half-frames.
-
-    The metric is independent of the FIR's numeric output but is still a
-    proxy; for rotations or scenes with too little static texture it can fail.
-    """
+def compare_image_stability(side_by_side: Path, max_frames: int = 1500) -> dict:
+    """Stream only masked image ROIs to bound memory for long clips."""
     cap=cv2.VideoCapture(str(side_by_side))
-    if not cap.isOpened():return {'status':'INCONCLUSIVE','reason':'video decode failed'}
-    before=[];after=[]
+    if not cap.isOpened():
+        return {'status':'INCONCLUSIVE','reason':'video decode failed'}
+    prev=None; steps=[[],[]]; scores=[[],[]]; frames=0; low_texture=False
     try:
-        for _ in range(max_frames):
+        while frames<max_frames:
             ok,frame=cap.read()
-            if not ok:break
+            if not ok: break
             w=frame.shape[1]//2
-            if w<=0:break
-            # top 28px contains synthetic caption bar. Crop it out in both.
-            before.append(frame[30:, :w]);after.append(frame[30:,w:])
-    finally:cap.release()
-    a=_trace(before);b=_trace(after)
-    if not (a['ok'] and b['ok']):return {'status':'INCONCLUSIVE','before':a,'after':b,
-        'reason':'Insufficient reliable independent image registration; no image-based improvement claim.'}
-    raw=a['rms_high_frequency_registration_px']
-    stable=b['rms_high_frequency_registration_px']
-    return {'status':'MEASURED','method':'background_masked_Fourier_phase_correlation',
-            'before':a,'after':b,'reduction_pct':100*(1-stable/max(1e-9,raw)),
-            'caveat':'Independent image-motion proxy, not absolute camera-pose truth; only translation is compensated.'}
+            if w<20 or frame.shape[0]<55:
+                return {'status':'INCONCLUSIVE','reason':'frame too small'}
+            curr=[]
+            for half in (frame[30:,:w],frame[30:,w:]):
+                gray=cv2.cvtColor(half,cv2.COLOR_BGR2GRAY)
+                h,ww=gray.shape
+                patch=gray[int(h*.08):int(h*.57),int(ww*.05):int(ww*.34)]
+                if frames==0 and (patch.size==0 or float(np.std(patch))<6):
+                    low_texture=True
+                curr.append(_roi(gray))
+            if prev is not None:
+                for i in (0,1):
+                    hann=cv2.createHanningWindow((curr[i].shape[1],curr[i].shape[0]),cv2.CV_32F)
+                    (dx,dy),quality=cv2.phaseCorrelate(prev[i],curr[i],hann)
+                    steps[i].append((float(dx),float(dy)))
+                    scores[i].append(float(quality))
+            prev=curr
+            frames+=1
+    finally:
+        cap.release()
+    if low_texture:
+        return {'status':'INCONCLUSIVE','reason':'insufficient background texture'}
+    def summarise(i):
+        if frames<18:return {'ok':False,'reason':'too few frames'}
+        points=np.asarray(steps[i],dtype=float)
+        conf=np.asarray(scores[i],dtype=float)
+        valid=(conf>=.08)&(np.abs(points).max(axis=1)<65)
+        if valid.mean()<.80:
+            return {'ok':False,'reason':'low independent image registration confidence',
+                    'valid_pairs':int(valid.sum()),'pairs':len(valid),
+                    'median_response':float(np.median(conf))}
+        def detrend(v):
+            k=9
+            return v-np.convolve(np.pad(v,(k//2,k//2),mode='edge'),np.ones(k)/k,mode='valid')
+        jitter=np.column_stack([detrend(points[:,0]),detrend(points[:,1])])
+        return {'ok':True,'rms_high_frequency_registration_px':float(np.sqrt(np.mean(np.square(jitter[valid])))),
+                'valid_pairs':int(valid.sum()),'pairs':len(valid),
+                'median_response':float(np.median(conf))}
+    before,after=summarise(0),summarise(1)
+    if not (before['ok'] and after['ok']):
+        return {'status':'INCONCLUSIVE','before':before,'after':after,
+                'reason':'Insufficient independent registration; no image-improvement claim.'}
+    raw=before['rms_high_frequency_registration_px']
+    stable=after['rms_high_frequency_registration_px']
+    return {'status':'MEASURED','method':'streamed_masked_Fourier_phase_correlation',
+            'before':before,'after':after,
+            'reduction_pct':100*(1-stable/max(1e-9,raw)),
+            'caveat':'Proxy for residual image motion, not camera-pose ground truth.'}

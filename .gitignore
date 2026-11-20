@@ -11,3 +11,9 @@ __pycache__/
 *.bit
 *.dcp
 private_media/
+
+# User-facing media output folders (input sources are separate)
+videos/sim/*
+videos/hrd/*
+!videos/sim/.gitkeep
+!videos/hrd/.gitkeep

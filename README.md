@@ -1,5 +1,7 @@
 # FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
+**GUI v0.8.2:** Assessment labels source and software/FPGA mode, audio preserved in exported MP4, long videos supported by overlapping FIR batches, and sources/results organised under `videos/`. See [v0.8.2 notes](docs/GUI_V082_LONG_VIDEO_AUDIO.md).
+
 **v0.8.1 GUI CANDIDATE (20 November 2026):** Three main tabs (**Implementation**, **Assessment**, **Help**); one compact action row; maximised side-by-side video workspace; and full-height selectable analytical plots. **38/38 host tests PASS locally (including 3 playback tests); GUI desktop smoke and software-preview render PASS. Physical v0.8 GUI-to-Arty A7 test remains pending.** The FPGA RTL, coefficient ROM and Vivado bitstream workflow are unchanged.
 
 **Current status:** The existing CLI-controlled FIR/UART implementation passed physical Arty A7-35T verification on COM4 (17 November 2026, user-provided logs). **The new interactive GUI is a separate development candidate awaiting local hardware GUI testing.** This independent Artix-7 / SystemVerilog / Python demonstrator uses a real FPGA **17-tap motion FIR** to smooth camera-motion trajectories, while OpenCV renders the corrected image frames on the host. A separate audio filtering extension is planned; audio is **not** implemented in this release.

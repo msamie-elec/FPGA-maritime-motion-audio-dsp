@@ -65,6 +65,7 @@ class MaritimeGUI:
         self._img_right = None
         self.comport = tk.StringVar(value='')
         self.video_info = tk.StringVar(value='No video selected')
+        self.assessment_context = tk.StringVar(value='Source: none | Assessment: NOT RUN')
         self.motion_mode = tk.StringVar(value='Natural footage: automatic OpenCV motion estimation (no CSV or synthetic shake)')
         self.input_kind = 'NATURAL'
         self.image_metric = tk.StringVar(value='Independent image stability: not assessed')
@@ -143,7 +144,9 @@ class MaritimeGUI:
         toolbar.pack(side='top',fill='x',padx=9,pady=(9,7))
         self.open_btn=ttk.Button(toolbar,text='Open video',command=self.choose_video)
         self.open_btn.pack(side='left',padx=(0,4))
-        ttk.Button(toolbar,text='Reset view',command=self.reset_view).pack(side='left',padx=(0,10))
+        ttk.Button(toolbar,text='Reset view',command=self.reset_view).pack(side='left',padx=(0,4))
+        self.sw_btn=ttk.Button(toolbar,text='Software preview',command=lambda:self.process(False))
+        self.sw_btn.pack(side='left',padx=(0,10))
         ttk.Label(toolbar,text='COM').pack(side='left',padx=(0,4))
         self.port_entry=ttk.Combobox(toolbar,textvariable=self.comport,width=7,state='normal')
         self.port_entry.pack(side='left',padx=(0,4))
@@ -153,8 +156,6 @@ class MaritimeGUI:
         self.hw_btn=ttk.Button(toolbar,text='Stabilise using FPGA',style='Accent.TButton',
                                command=lambda:self.process(True))
         self.hw_btn.pack(side='left',padx=(0,4))
-        self.sw_btn=ttk.Button(toolbar,text='Software preview',command=lambda:self.process(False))
-        self.sw_btn.pack(side='left',padx=(0,10))
         ttk.Label(toolbar,text='Smoothing').pack(side='left',padx=(0,4))
         self.profile_combo=ttk.Combobox(toolbar,textvariable=self.profile,
                                         values=['Normal','Strong'],state='readonly',width=8)
@@ -212,10 +213,12 @@ class MaritimeGUI:
         self.frame_text=ttk.Label(playback,text='0 / 0',width=11)
         self.frame_text.pack(side='left',padx=(12,5))
         ttk.Button(playback,text='Results folder',command=self.open_output).pack(side='right',padx=(8,0))
+        ttk.Button(playback,text='Play MP4 with audio',command=self.open_media_with_audio).pack(side='right',padx=(8,0))
 
         # Assessment tab: large plotting region, all verification data together.
         assess_top=ttk.Frame(self.assessment_tab)
-        assess_top.pack(fill='x',padx=12,pady=(12,5))
+        assess_top.pack(fill='x',padx=12,pady=(8,5))
+        tk.Label(assess_top,textvariable=self.assessment_context,anchor='w',font=('Segoe UI',10,'bold')).pack(fill='x',padx=6,pady=(0,8))
         tiles=ttk.Frame(assess_top)
         tiles.pack(fill='x')
         for name,value in [('X reduction',self.stat_x),('Y reduction',self.stat_y),
@@ -304,7 +307,7 @@ class MaritimeGUI:
             'After successful programming, select its USB-UART COM port. BTN0 resets the FPGA logic; Reset view resets only the GUI.'
         ])
         add_section('Implementation controls',[
-            'Open video — load a compatible MP4/MOV/AVI/M4V; 30 fps, up to 1280×720, 18–496 frames.',
+            'Open video — load a compatible MP4/MOV/AVI/M4V; 30 fps, up to 1280×720, 18–1500 frames.',
             'Reset view — clear displayed results; does not program or reset the board.',
             'COM / Detect ports — choose the physical USB serial port and refresh the list.',
             'Verify FPGA — send three reference cases and compare every returned result bit-for-bit.',
@@ -325,7 +328,7 @@ class MaritimeGUI:
             'The PC estimates camera motion and warps frames. The FPGA filters numeric X/Y/roll trajectories only.',
             'This is an offline 30 fps demonstration; no camera/video signal is streamed directly through the FPGA.',
             'Moving waves/ships, blur, limited background texture and perspective changes can reduce effectiveness.',
-            'Use licensed, genuinely recorded shaky maritime footage for final industrial evidence.'
+            'Sources: videos/. Outputs: videos/sim/ (software) and videos/hrd/ (physical FPGA).\n            Original audio is retained in exported MP4. Use Play MP4 with audio for sound; the embedded viewer is silent.\n            Use licensed, genuinely recorded shaky maritime footage for final industrial evidence.'
         ])
         self.help_text.configure(state='disabled')
 
@@ -403,7 +406,9 @@ class MaritimeGUI:
         ttk.Label(field,text='Start time (seconds):').pack(side='left')
         startvar=tk.StringVar(value='0')
         ttk.Entry(field,textvariable=startvar,width=8).pack(side='left',padx=8)
-        ttk.Label(field,text='Export duration: 5 seconds (maximum 150 frames)').pack(side='left',padx=10)
+        ttk.Label(field,text='Duration (seconds, max 50):').pack(side='left',padx=10)
+        durationvar=tk.StringVar(value='5')
+        ttk.Entry(field,textvariable=durationvar,width=8).pack(side='left',padx=4)
         ttk.Label(body,text='The source must contain enough stationary background texture. In some sea-only clips the motion estimate may be inconclusive. This will be reported rather than hidden.',wraplength=690,foreground='#8b4c35').pack(anchor='w',pady=(10,7))
         def choose():
             filename=filedialog.askopenfilename(parent=win,title='Choose the ORIGINAL recorded video',
@@ -411,23 +416,24 @@ class MaritimeGUI:
             if not filename:return
             try:
                 starttime=float(startvar.get())
-                if starttime<0:raise ValueError('Start must not be negative')
+                seconds=float(durationvar.get())
+                if starttime<0 or not .6<=seconds<=50:raise ValueError('Start >=0 and duration 0.6..50 seconds required')
                 probe_raw(Path(filename))
             except Exception as e:
                 messagebox.showerror('Invalid footage',str(e),parent=win);return
             win.destroy()
             self._set_busy(True)
             self.status.set('Importing original camera recording without adding shake…')
-            threading.Thread(target=self._natural_import_worker,args=(Path(filename),starttime),daemon=True).start()
+            threading.Thread(target=self._natural_import_worker,args=(Path(filename),starttime,seconds),daemon=True).start()
         ttk.Button(body,text='Choose ORIGINAL recording and prepare',style='Accent.TButton',command=choose).pack(anchor='w',pady=12)
         ttk.Button(body,text='Cancel',command=win.destroy).pack(anchor='e')
 
-    def _natural_import_worker(self,path:Path,start_s:float):
+    def _natural_import_worker(self,path:Path,start_s:float,duration_s:float):
         try:
             import datetime
             tag=datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')
-            folder=ROOT/'build'/'natural_maritime_clips'/tag
-            data=prepare_natural_footage(path,folder/'natural_input_30fps.mp4',start_s=start_s)
+            folder=ROOT/'videos'
+            data=prepare_natural_footage(path,folder/('import_'+tag+'_30fps.mp4'),start_s=start_s,duration_s=duration_s)
             self.events.put(('natural_import',data))
         except Exception as e:
             self.events.put(('error',(str(e),traceback.format_exc())))
@@ -454,7 +460,7 @@ class MaritimeGUI:
         return inspect_video(self.source)
 
     def choose_video(self):
-        path=filedialog.askopenfilename(title='Select short 30-fps ship camera video',filetypes=[('Video files','*.mp4 *.mov *.avi *.m4v'),('All files','*.*')])
+        path=filedialog.askopenfilename(title='Select 30-fps ship camera video',initialdir=str(ROOT/'videos'),filetypes=[('Video files','*.mp4 *.mov *.avi *.m4v'),('All files','*.*')])
         if not path:return
         try:info=inspect_video(Path(path))
         except Exception as e:messagebox.showerror('Video not supported',str(e));return
@@ -519,7 +525,9 @@ class MaritimeGUI:
         self._set_busy(True)
         self.status.set(('Sending motion data to the real Arty A7 on '+port if hardware else 'Running software-only preview')+' …')
         self.validation.set('Processing in progress — no results yet')
-        base=ROOT/'build'/'gui_runs'
+        mode=('PHYSICAL FPGA (COM '+port+')' if hardware else 'SOFTWARE REFERENCE (no FPGA)')
+        self.assessment_context.set(f'Source: {self.source.name if self.source else "none"} | Assessment: PROCESSING — {mode}')
+        base=ROOT/'videos'/('hrd' if hardware else 'sim')
         import datetime
         dest=base/(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')+('_hardware' if hardware else '_software'))
         t=threading.Thread(target=self._process_thread,args=(self.source,self.trajectory,dest,port,self.profile.get()),daemon=True)
@@ -557,7 +565,8 @@ class MaritimeGUI:
                 if kind=='info':self._log(payload)
                 elif kind=='hardware_pass':
                     self._set_busy(False)
-                    self.validation.set(f'PHYSICAL FPGA UART/FIR TEST PASS — {payload}: 3/3 cases, bit-exact')
+                    self.validation.set(f'PHYSICAL FPGA UART/FIR TEST PASS — {payload}: 3/3 cases, bit-exact (no video assessment)')
+                    self.assessment_context.set(f'Source: {self.source.name if self.source else "none"} | Assessment: NOT RUN — FPGA connection only verified')
                     self.status.set('Hardware connected and numerical test passed. Select a video and process it.')
                 elif kind=='error':
                     self._set_busy(False)
@@ -587,6 +596,8 @@ class MaritimeGUI:
         if hasattr(self,'after_title'):
             self.after_title.configure(text='FPGA FILTERED — BIT-EXACT' if result.metrics.get('hardware_verified') else 'SOFTWARE PREVIEW — NOT FPGA')
         m=result.metrics
+        mode='PHYSICAL FPGA / bit-exact' if m.get('hardware_verified') else 'SOFTWARE REFERENCE / no FPGA'
+        self.assessment_context.set(f'Source: {result.video.name} | Assessment: {mode} | Smoothing: {m.get("profile","Normal")}')
         self.stat_x.set(f"{m['x']['reduction_pct']:.1f}%")
         self.stat_y.set(f"{m['y']['reduction_pct']:.1f}%")
         self.stat_roll.set(f"{m['theta']['reduction_pct']:.1f}%" if "theta" in m else "N/A")
@@ -813,7 +824,8 @@ class MaritimeGUI:
         self.result=None
         if hasattr(self,'after_title'): self.after_title.configure(text='AFTER PROCESSING')
         for v in [self.stat_x,self.stat_y,self.stat_roll,self.stat_frames,self.stat_run]:v.set('—')
-        self.validation.set('No FPGA verification for current selection')
+        self.validation.set('No video processing performed')
+        self.assessment_context.set(f'Source: {self.source.name if self.source else "none"} | Assessment: NOT RUN — original video only')
         self.image_metric.set('Independent image stability: not assessed')
         self.draw_plots()
         self.draw_image_metric()
@@ -827,6 +839,16 @@ class MaritimeGUI:
         if self.source:self._show_source_frame()
         self.status.set('View cleared. FPGA hardware itself is unchanged; use BTN0 for a physical reset if required.')
         self._log('GUI reset view (does NOT reset the FPGA).')
+
+    def open_media_with_audio(self):
+        """Open source or comparison in OS media player to hear audio."""
+        path=self.result.side_by_side if self.result else self.source
+        if path is None or not Path(path).is_file():
+            messagebox.showinfo('No video','Open a source video first.');return
+        import os,subprocess
+        if sys.platform=='win32':os.startfile(str(path))
+        elif sys.platform=='darwin':subprocess.Popen(['open',str(path)])
+        else:subprocess.Popen(['xdg-open',str(path)])
 
     def open_output(self):
         if not self.result:
