@@ -1,0 +1,29 @@
+UNIFIED VIDEO + AUDIO FPGA: WINDOWS BUILD AND PHYSICAL TEST
+============================================================
+
+Software: current unified v1.0.3 project with synchronized GUI audio playback.
+Hardware: Arty A7-35T, Vivado 2025.2.1, USB-UART (typically COM4).
+
+IMPORTANT: The previous video-only bitstream is INCOMPATIBLE with audio jobs.
+The new dual-bank RTL needs synthesis and implementation once on your laptop.
+
+1. Open PowerShell in this extracted project's root folder.
+2. Install dependencies if needed:
+     python -m pip install -r .\host\requirements.txt
+3. Close any open Vivado project and run the combined build:
+     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\build_unified_av_fpga.ps1
+4. Read Vivado timing_routed.rpt and drc_routed.rpt, and if there are
+   failures, STOP and share those reports.
+5. Vivado Hardware Manager -> Open target -> Program Device with:
+     build\vivado_maritime_a7\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit
+6. Close the Maritime GUI/serial monitors, verify current COM port, then run:
+     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\verify_unified_av_hardware.ps1 -Port COM4
+7. If both physical banks and the combined MP4 pass, launch the GUI:
+     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
+
+Short original with audio: videos\03_Unified_Quick_Test_3s.mp4
+Results: videos\hrd\unified_av_<timestamp>\
+Evidence: evidence\build\<timestamp>\ and evidence\hardware\unified_av_<timestamp>\
+
+No tool here can program your USB-connected Arty board. Do not interpret
+software regression or XSim simulation as evidence of real FPGA operation.

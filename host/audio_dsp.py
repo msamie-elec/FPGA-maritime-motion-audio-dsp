@@ -30,7 +30,7 @@ from fixed_point_golden import FirReference, centered_smooth
 AUDIO_JOB = 0x81  # high job-ID bit selects audio coefficients in v0.9 FPGA RTL
 MAX_JOB = 512
 BLOCK = MAX_JOB - 16
-MAX_SECONDS = 30.0
+MAX_SECONDS = 50.5  # accommodates the full supported 1500-frame / 30-fps video
 
 
 def read_audio(source: Path, start_s: float = 0.0, duration_s: float = 4.0) -> np.ndarray:
@@ -121,6 +121,8 @@ def analyze(original: np.ndarray, filtered: np.ndarray) -> dict:
         raise ValueError('Audio original/filtered sample mismatch')
     high_before = _band_power(original, 5000, 7500)
     high_after = _band_power(filtered, 5000, 7500)
+    low_before = _band_power(original, 40, 180)
+    low_after = _band_power(filtered, 40, 180)
     speech_before = _band_power(original, 250, 3000)
     speech_after = _band_power(filtered, 250, 3000)
     def change_db(after: float, before: float) -> float | None:
@@ -129,6 +131,7 @@ def analyze(original: np.ndarray, filtered: np.ndarray) -> dict:
         return round(10*math.log10(max(after, 1e-15)/before), 2)
     return {
         'high_band_5_7k5_attenuation_db': change_db(high_after, high_before),
+        'rumble_band_40_180_change_db': change_db(low_after, low_before),
         'speech_band_250_3000_change_db': change_db(speech_after, speech_before),
         'note': 'Spectral-band attenuation, NOT a measured improvement in intelligibility or isolated noise suppression.',
     }

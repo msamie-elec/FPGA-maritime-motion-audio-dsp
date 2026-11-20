@@ -6,6 +6,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 import tkinter as tk
+from unittest.mock import patch
 
 import cv2
 import numpy as np
@@ -50,9 +51,18 @@ def make_clip(path: Path, *, pair: bool = False, frames: int = 30) -> Path:
 
 
 def player_tick(app: MaritimeGUI) -> None:
-    """Deliver one scheduled frame reproducibly without waiting on wall time."""
+    """Simulate precisely one presentation frame, independently of CPU speed.
+
+    The player intentionally follows elapsed *wall-clock* time so that video
+    stays synchronised with the soundtrack: a slow Windows redraw may skip
+    frames.  Freeze monotonic time for this one test callback instead of
+    expecting an exact frame number after real-time decoding/resizing.
+    """
     app._cancel_play_timer()
-    app._play_tick()
+    elapsed = 1.01 / app.fps
+    fake_time = app._play_start + elapsed
+    with patch('maritime_gui.time.monotonic', return_value=fake_time):
+        app._play_tick()
 
 
 def test_open_video_can_play_before_filtering(ui, tmp_path, monkeypatch):

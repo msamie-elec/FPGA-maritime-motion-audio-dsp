@@ -1,0 +1,20 @@
+MARITIME FPGA GUI — Windows synchronized audio playback fix v1.0.2
+
+1. Extract the HOTFIX zip over your existing working FPGA_Maritime_AV_1 project folder.
+   Allow host/, scripts/, tests/ and docs/ files to merge and replace.
+   No bitstream or FPGA RTL changes required.
+2. In PowerShell, in the project root, run:
+   powershell -ExecutionPolicy Bypass -File .\scripts\run_gui_tests.ps1
+   powershell -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
+3. Open videos\03_Unified_Quick_Test_3s.mp4 and press Play:
+   You should now hear the ORIGINAL soundtrack inside the Windows GUI.
+4. Use Software preview in Video + Audio mode; after processing,
+   the Audio dropdown defaults to Filtered. Press Play to hear it.
+   Select Original to compare, or Mute for a silent demonstration.
+5. Pause / seek / Replay should stop or restart sound with the frames.
+6. If Windows' in-app audio backend cannot play, click
+   Play MP4 with audio to open the exported MP4 in the system player.
+
+Verification note: host-only regressions passed on the development host.
+The Windows WinMM sound-device backend needs an actual laptop test.
+Audio playback in the GUI does not imply an FPGA hardware-verified processing result.
