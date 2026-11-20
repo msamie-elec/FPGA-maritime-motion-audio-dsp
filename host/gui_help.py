@@ -18,7 +18,8 @@ HELP_SECTIONS=[
 6. Click Stabilise Video Using FPGA. The PC estimates camera X/Y and roll from
    actual footage, sends X/Y/roll samples to the FPGA FIR, reads them back
    and verifies every returned sample against its bit-exact reference.
-7. Play ORIGINAL / STABILISED views together. Inspect trajectory and
+7. Before processing, you can play/replay the original video on its own.
+   After processing, play ORIGINAL / STABILISED views together. Inspect trajectory and
    spectrum graphs, then see independent image-content registration result.
 8. Open result folder to retain the video, plots, CSV and evidence report.
 
@@ -65,8 +66,14 @@ Software preview only
 Reset view
   Clears GUI only, NOT physical FPGA; each new job resets FIR history.
 
-Play/Pause, seek bar, plots and export
-  Inspect corresponding original/stabilised frames and quantitative
+Play/Pause/Replay and seek bar
+  Opening a video enables immediate original-only playback (left panel).
+  The right panel stays empty until a hardware or software processing job.
+  At the end of a video, click Replay to return to the start and play again.
+  Pause and drag the seek bar to inspect any frame.
+
+Plots and export
+  After processing, inspect synchronized original/stabilised frames and quantitative
   filtering results. A second IMAGE-based measure validates displayed
   video jitter independently of numeric FIR trajectory smoothing.
 '''),

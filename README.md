@@ -1,15 +1,10 @@
 # FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
-**v0.8 GUI DEVELOPMENT CANDIDATE (20 November 2026):** Three main tabs — **Implementation**, **Assessment**, **Help** — replace the crowded stacked interface. One compact row holds the primary controls, both video panels expand to fill the Implementation tab, and the Assessment plots now use the full height of their own tab. **35/35 Python tests and desktop GUI/software-preview smoke tests passed locally; clean Windows/physical FPGA GUI validation is pending.** FPGA RTL, filters, XDC and Vivado build scripts are unchanged.
-
-[GUI v0.8 design and test details](docs/GUI_DESIGN_V08.md) · [v0.8 changelog](CHANGELOG_GUI_V08.md)
-
-
-**Three-axis processing baseline v0.7 (18 November 2026):** Three-axis X/Y/roll software and GUI extensions, selectable Normal/Strong FPGA FIR passes, and fixed global crop added. **Local Linux Python software tests: 35/35 PASS. Clean Windows GUI and physical COM4 tests are pending; no new FPGA hardware claim.**
+**v0.8.1 GUI CANDIDATE (20 November 2026):** Three main tabs (**Implementation**, **Assessment**, **Help**); one compact action row; maximised side-by-side video workspace; and full-height selectable analytical plots. **38/38 host tests PASS locally (including 3 playback tests); GUI desktop smoke and software-preview render PASS. Physical v0.8 GUI-to-Arty A7 test remains pending.** The FPGA RTL, coefficient ROM and Vivado bitstream workflow are unchanged.
 
 **Current status:** The existing CLI-controlled FIR/UART implementation passed physical Arty A7-35T verification on COM4 (17 November 2026, user-provided logs). **The new interactive GUI is a separate development candidate awaiting local hardware GUI testing.** This independent Artix-7 / SystemVerilog / Python demonstrator uses a real FPGA **17-tap motion FIR** to smooth camera-motion trajectories, while OpenCV renders the corrected image frames on the host. A separate audio filtering extension is planned; audio is **not** implemented in this release.
 
-**New in v0.7:** [Three-axis geometry, validation, limitations and Windows commands](docs/THREE_AXIS_V07.md). The current `integration-v0.6` branch remains an earlier baseline; use `feature/three-axis-v0.7` for this candidate.
+**Three-axis foundation introduced in v0.7:** [Three-axis geometry, validation, limitations and Windows commands](docs/THREE_AXIS_V07.md). The older `integration-v0.6`, `feature/three-axis-v0.7`, and `feature/gui-three-tabs-v0.8` branches remain rollback baselines; use the v0.8.1 playback-fix branch for this candidate.
 
 **Start here:** [Fresh integration and Windows setup](docs/INTEGRATION_STATUS.md) · [Why videos can look unchanged](docs/VIDEO_STABILISATION_DIAGNOSTICS.md)
 
@@ -20,19 +15,25 @@
 *Both diagrams are conceptual, not FPGA output.*
 
 
-> **Historical v0.6 layout (superseded by v0.8):** High-DPI Windows text rendering, larger Segoe UI labels, resizable video/analysis workspace, enlarged plot tabs, separate full-size engineering dashboard, and a formatted Help guide with A+/A− text controls. All existing FPGA RTL, XDC constraints, UART protocol and bitstream scripts are unchanged. The design was desktop-smoke-tested and the **30/30 existing host tests passed** in this environment. **The redesigned GUI still requires testing on the physical Windows/Arty A7 setup.**
+## GUI v0.8.1 — playback usability fix
 
-![v0.6 UI main workspace preview; no physical FPGA result](docs/screenshots/gui_v06_workspace.jpg)
+Original videos are now playable immediately on upload (before filtering). After processing, both panels replay together repeatedly. Seek/pause/reset and source switching are covered by dedicated desktop tests. This is a GUI-only update with **no new bitstream needed**. See [playback tests and behaviour](docs/GUI_PLAYBACK_V081.md).
 
-*GUI design screenshot. Empty initial state; no physical result asserted.*
+## GUI v0.8 — three-tab operator workspace
 
-[View the v0.6 expanded software-only engineering dashboard](docs/screenshots/gui_v06_expanded_software_preview.jpg) · [View the new operator guide](docs/screenshots/gui_v06_help.jpg) · [Read the v0.6 UI guide](docs/GUI_DESIGN_V06.md).
+The interface keeps primary actions in one compact row and gives the rest of **Implementation** to the original/stabilised videos. **Assessment** has a dedicated large plot: motion curves (select X/Y/ROLL), spectrum, independent image stability, or evidence log. **Help** is a readable in-app guide including Vivado programming, connection testing, and the smoothing profiles.
+
+![v0.8 implementation view — software-only screenshot](docs/screenshots/gui_v08_implementation.png)
+
+![v0.8 assessment view — software reference, not hardware evidence](docs/screenshots/gui_v08_assessment.png)
+
+[Detailed v0.8 UI design and test limits](docs/GUI_DESIGN_V08.md) · [v0.8 changelog](CHANGELOG_GUI_V08.md)
 
 > **v0.5 natural-footage release candidate:** [Real Footage Validation Guide](docs/REAL_FOOTAGE_VALIDATION.md) · [v0.5 Changelog](CHANGELOG_GUI_V05.md). GUI import now **preserves naturally recorded camera motion**, does not inject shake or supply a motion CSV, and evaluates **independent image-based stability** in addition to the FIR trajectory. This software upgrade has **26/26 host tests PASS** and desktop smoke PASS; the updated GUI has **not** been reverified against your physical FPGA, and no naturally shaky real clip has yet satisfied the real-footage release gate. The previously validated bitstream is unchanged.
 
 ## Interactive laptop demonstrator — GUI v0.8 (natural camera shake and roll)
 
-The Windows desktop GUI now supports **three-axis X/Y/roll compensation**, **Normal/Strong FIR modes**, fixed image cropping with crop-loss reporting, and **File → Open video** (30 fps, 18–496 frames, up to 1280×720), **Import natural footage** (no injected motion or CSV) or separate synthetic tests, physical FPGA COM-port selection (COM4 on the tested workstation), a real 3-case hardware self-test, and **side-by-side synchronized video playback in the same window**, with motion curves, spectra, shake-reduction metrics and evidence exports.
+The Windows desktop GUI now supports **three-axis X/Y/roll compensation** with **Normal/Strong FIR modes** and fixed image cropping. **Implementation** includes File → Open video (30 fps, 18–496 frames, up to 1280×720), COM-port selection, connection testing, FPGA stabilisation and a full-size before/after player. For original footage preparation or synthetic lab input, use the **File** menu. **Assessment** and **Help** are separate main tabs. Normal applies one FIR pass per axis; Strong applies two, which can increase both suppression and crop loss.
 
 ```powershell
 python -m pip install -r .\host\requirements.txt
@@ -106,7 +107,7 @@ This runs Python tests, complete UART/FIR XSim regression, a software-only marit
 & "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source scripts/build_maritime_bitstream.tcl
 ```
 
-Examine the DRC, resource and routed timing reports before programming. Open `build/vivado_maritime_a7/maritime_a7.xpr` to inspect RTL hierarchy and synthesized schematic. See [board integration guide](docs/BOARD_INTEGRATION.md) for actual COM-port testing. A user-provided local Vivado 2025.2.1 run has shown bitstream generation and physical UART/FIR success. The updated GUI v0.5 has not yet been verified with hardware.
+Examine the DRC, resource and routed timing reports before programming. Open `build/vivado_maritime_a7/maritime_a7.xpr` to inspect RTL hierarchy and synthesized schematic. See [board integration guide](docs/BOARD_INTEGRATION.md) for actual COM-port testing. A user-provided local Vivado 2025.2.1 run has shown bitstream generation and physical UART/FIR success. The updated v0.8 GUI has not yet been verified with hardware.
 
 ```powershell
 python host/stabilize_video.py --out build/maritime_demo --port COM4

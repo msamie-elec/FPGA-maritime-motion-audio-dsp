@@ -51,6 +51,10 @@ class MaritimeGUI:
         self.trajectory: Path | None = None
         self.result = None
         self.capture = None
+        # One player handles either a raw input (left panel only) or a
+        # processed side-by-side MP4. Timers are cancelled on pause/reload.
+        self._playback_kind = None  # 'source' or 'pair'
+        self._play_after_id = None
         self.frames = 0
         self.frame_idx = 0
         self.fps = 30.0
@@ -203,6 +207,7 @@ class MaritimeGUI:
         self.play_btn.pack(side='left',padx=(0,8))
         self.seek=ttk.Scale(playback,variable=self.seek_pos,from_=0,to=100,orient='horizontal')
         self.seek.pack(side='left',fill='x',expand=True,padx=4)
+        self.seek.bind('<ButtonPress-1>',self._seek_press)
         self.seek.bind('<ButtonRelease-1>',self._seek_release)
         self.frame_text=ttk.Label(playback,text='0 / 0',width=11)
         self.frame_text.pack(side='left',padx=(12,5))
@@ -460,7 +465,7 @@ class MaritimeGUI:
         self.video_info.set(f'{self.source.name} | {info.width}×{info.height} | {info.fps:.2f} fps | {info.frames} frames')
         self._clear_result()
         self._show_source_frame()
-        self.status.set('Video loaded. Choose PHYSICAL FPGA or software preview.')
+        self.status.set('Original video ready to play. Stabilise using FPGA to compare with the corrected video.')
         self._log(f'Loaded input video {self.source} | {info.frames} frames')
 
     def make_demo(self):
@@ -607,25 +612,44 @@ class MaritimeGUI:
         self.draw_image_metric()
         self._open_pair_video(result.side_by_side)
 
-    def _open_pair_video(self,path):
+    def _open_playback_video(self, path: Path, kind: str) -> None:
+        """Open one source video or one already-rendered side-by-side video.
+
+        Playback is independent of FIR processing: original footage is
+        immediately playable in the left panel, with a right-side placeholder.
+        """
+        if kind not in ('source', 'pair'):
+            raise ValueError(f'Unsupported playback kind: {kind}')
         self._release_video()
-        self.capture=cv2.VideoCapture(str(path))
-        if not self.capture.isOpened():
-            messagebox.showerror('Preview','Could not open generated comparison MP4. Check output folder.');return
-        self.frames=int(self.capture.get(cv2.CAP_PROP_FRAME_COUNT))
-        self.fps=float(self.capture.get(cv2.CAP_PROP_FPS) or 30)
-        self.seek.configure(to=max(0,self.frames-1))
-        self.play_btn.configure(state='normal')
+        cap = cv2.VideoCapture(str(path))
+        if not cap.isOpened():
+            messagebox.showerror('Video playback', f'Could not open video: {path}')
+            return
+        count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+        if count < 1:
+            cap.release()
+            messagebox.showerror('Video playback', 'The selected video has no readable frames.')
+            return
+        self.capture = cap
+        self.frames = count
+        self._playback_kind = kind
+        fps = float(cap.get(cv2.CAP_PROP_FPS))
+        self.fps = fps if np.isfinite(fps) and fps > 0 else 30.0
+        self.seek.configure(to=max(0, count - 1))
+        self.play_btn.configure(state='normal', text='▶ Play')
+        if kind == 'source':
+            self.right.configure(image='', text='Process this video to see the stabilised result')
+            self._img_right = None
         self._show_frame(0)
 
-    def _show_source_frame(self):
-        self._release_video()
-        if not self.source:return
-        cap=cv2.VideoCapture(str(self.source))
-        ok,frame=cap.read();cap.release()
-        if ok:
-            self._render_label(self.left,frame,'left')
-            self.right.configure(image='',text='STABILISED VIDEO\n\nProcess the selected video on the FPGA')
+    def _open_pair_video(self, path: Path) -> None:
+        self._open_playback_video(path, 'pair')
+
+    def _show_source_frame(self) -> None:
+        if not self.source:
+            self._release_video()
+            return
+        self._open_playback_video(self.source, 'source')
 
     def _render_label(self,label,frame,which):
         if frame is None:return
@@ -641,37 +665,87 @@ class MaritimeGUI:
         if which=='left':self._img_left=img
         else:self._img_right=img
 
-    def _show_frame(self,index):
-        if not self.capture:return
-        index=int(max(0,min(self.frames-1,index)))
-        self.capture.set(cv2.CAP_PROP_POS_FRAMES,index)
-        ok,frame=self.capture.read()
-        if not ok:return
-        w=frame.shape[1]//2
-        self._render_label(self.left,frame[:,:w],'left')
-        self._render_label(self.right,frame[:,w:],'right')
-        self.frame_idx=index
+    def _show_frame(self, index: int) -> None:
+        if self.capture is None or self.frames < 1:
+            return
+        index = int(max(0, min(self.frames - 1, index)))
+        self.capture.set(cv2.CAP_PROP_POS_FRAMES, index)
+        ok, frame = self.capture.read()
+        if not ok or frame is None:
+            # Do not allow a failed decode to leave the timer running forever.
+            self._pause_playback()
+            self.status.set(f'Could not decode video frame {index + 1}.')
+            return
+        if self._playback_kind == 'pair':
+            w = frame.shape[1] // 2
+            self._render_label(self.left, frame[:, :w], 'left')
+            self._render_label(self.right, frame[:, w:], 'right')
+        else:
+            self._render_label(self.left, frame, 'left')
+        self.frame_idx = index
         self.seek_pos.set(index)
-        self.frame_text.configure(text=f'{index+1} / {self.frames}')
+        self.frame_text.configure(text=f'{index + 1} / {self.frames}')
 
-    def toggle_play(self):
-        if not self.capture:return
-        self.playing=not self.playing
-        self.play_btn.configure(text='❚❚ Pause' if self.playing else '▶ Play')
-        if self.playing:self._play_tick()
+    def _cancel_play_timer(self) -> None:
+        if self._play_after_id is not None:
+            try:
+                self.window.after_cancel(self._play_after_id)
+            except tk.TclError:
+                pass
+            self._play_after_id = None
 
-    def _play_tick(self):
-        if not self.playing:return
-        next_frame=self.frame_idx+1
-        if next_frame>=self.frames:
-            self.playing=False
+    def _pause_playback(self) -> None:
+        self.playing = False
+        self._cancel_play_timer()
+        if self.capture is not None and self.frames > 0 and self.frame_idx >= self.frames - 1:
+            self.play_btn.configure(text='↻ Replay')
+        else:
             self.play_btn.configure(text='▶ Play')
+
+    def _schedule_play_tick(self) -> None:
+        if self.playing and self._play_after_id is None:
+            interval_ms = max(15, round(1000.0 / self.fps))
+            self._play_after_id = self.window.after(interval_ms, self._play_tick)
+
+    def toggle_play(self) -> None:
+        if self.capture is None or self.frames < 1:
+            return
+        if self.playing:
+            self._pause_playback()
+            return
+        # Replay automatically from frame 0 after reaching the final frame.
+        if self.frame_idx >= self.frames - 1:
+            self._show_frame(0)
+        self.playing = True
+        self.play_btn.configure(text='❚❚ Pause')
+        self._schedule_play_tick()
+
+    def _play_tick(self) -> None:
+        # The Tk timer fires only while video is playing. No old timer can
+        # advance a newly loaded clip after switching source/processing mode.
+        self._play_after_id = None
+        if not self.playing or self.capture is None:
+            return
+        next_frame = self.frame_idx + 1
+        if next_frame >= self.frames:
+            self._pause_playback()
             return
         self._show_frame(next_frame)
-        self.window.after(max(15,int(1000/self.fps)),self._play_tick)
+        if self.playing:
+            if self.frame_idx == self.frames - 1:
+                self._pause_playback()
+            else:
+                self._schedule_play_tick()
 
-    def _seek_release(self,event=None):
-        if self.capture:self._show_frame(round(self.seek_pos.get()))
+    def _seek_press(self, event=None) -> None:
+        # Scrubbing pauses the video; releasing the slider shows that frame.
+        if self.playing:
+            self._pause_playback()
+
+    def _seek_release(self, event=None) -> None:
+        if self.capture is not None:
+            self._show_frame(round(self.seek_pos.get()))
+            self._pause_playback()
 
     def draw_image_metric(self):
         ax=self.imgax;ax.clear()
@@ -764,13 +838,19 @@ class MaritimeGUI:
         elif sys.platform=='darwin':subprocess.Popen(['open',folder])
         else:subprocess.Popen(['xdg-open',folder])
 
-    def _release_video(self):
-        self.playing=False
-        if self.capture:self.capture.release();self.capture=None
-        self.frames=0;self.frame_idx=0
-        if hasattr(self,'play_btn'):
-            self.play_btn.configure(text='▶ Play')
+    def _release_video(self) -> None:
+        self.playing = False
+        self._cancel_play_timer()
+        if self.capture is not None:
+            self.capture.release()
+            self.capture = None
+        self._playback_kind = None
+        self.frames = 0
+        self.frame_idx = 0
+        if hasattr(self, 'play_btn'):
+            self.play_btn.configure(text='▶ Play', state='disabled')
             self.seek_pos.set(0)
+            self.frame_text.configure(text='0 / 0')
 
     def _close(self):
         if self.busy and not messagebox.askyesno('Job in progress','A UART or processing operation is active. Close anyway?'):
