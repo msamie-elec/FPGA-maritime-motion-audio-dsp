@@ -1,6 +1,11 @@
 # FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
-**v0.7 DEVELOPMENT CANDIDATE (18 November 2026):** Three-axis X/Y/roll software and GUI extensions, selectable Normal/Strong FPGA FIR passes, and fixed global crop added. **Local Linux Python software tests: 35/35 PASS. Clean Windows GUI and physical COM4 tests are pending; no new FPGA hardware claim.**
+**v0.8 GUI DEVELOPMENT CANDIDATE (20 November 2026):** Three main tabs — **Implementation**, **Assessment**, **Help** — replace the crowded stacked interface. One compact row holds the primary controls, both video panels expand to fill the Implementation tab, and the Assessment plots now use the full height of their own tab. **35/35 Python tests and desktop GUI/software-preview smoke tests passed locally; clean Windows/physical FPGA GUI validation is pending.** FPGA RTL, filters, XDC and Vivado build scripts are unchanged.
+
+[GUI v0.8 design and test details](docs/GUI_DESIGN_V08.md) · [v0.8 changelog](CHANGELOG_GUI_V08.md)
+
+
+**Three-axis processing baseline v0.7 (18 November 2026):** Three-axis X/Y/roll software and GUI extensions, selectable Normal/Strong FPGA FIR passes, and fixed global crop added. **Local Linux Python software tests: 35/35 PASS. Clean Windows GUI and physical COM4 tests are pending; no new FPGA hardware claim.**
 
 **Current status:** The existing CLI-controlled FIR/UART implementation passed physical Arty A7-35T verification on COM4 (17 November 2026, user-provided logs). **The new interactive GUI is a separate development candidate awaiting local hardware GUI testing.** This independent Artix-7 / SystemVerilog / Python demonstrator uses a real FPGA **17-tap motion FIR** to smooth camera-motion trajectories, while OpenCV renders the corrected image frames on the host. A separate audio filtering extension is planned; audio is **not** implemented in this release.
 
@@ -15,7 +20,7 @@
 *Both diagrams are conceptual, not FPGA output.*
 
 
-> **v0.6 interface redesign — candidate:** High-DPI Windows text rendering, larger Segoe UI labels, resizable video/analysis workspace, enlarged plot tabs, separate full-size engineering dashboard, and a formatted Help guide with A+/A− text controls. All existing FPGA RTL, XDC constraints, UART protocol and bitstream scripts are unchanged. The design was desktop-smoke-tested and the **30/30 existing host tests passed** in this environment. **The redesigned GUI still requires testing on the physical Windows/Arty A7 setup.**
+> **Historical v0.6 layout (superseded by v0.8):** High-DPI Windows text rendering, larger Segoe UI labels, resizable video/analysis workspace, enlarged plot tabs, separate full-size engineering dashboard, and a formatted Help guide with A+/A− text controls. All existing FPGA RTL, XDC constraints, UART protocol and bitstream scripts are unchanged. The design was desktop-smoke-tested and the **30/30 existing host tests passed** in this environment. **The redesigned GUI still requires testing on the physical Windows/Arty A7 setup.**
 
 ![v0.6 UI main workspace preview; no physical FPGA result](docs/screenshots/gui_v06_workspace.jpg)
 
@@ -25,7 +30,7 @@
 
 > **v0.5 natural-footage release candidate:** [Real Footage Validation Guide](docs/REAL_FOOTAGE_VALIDATION.md) · [v0.5 Changelog](CHANGELOG_GUI_V05.md). GUI import now **preserves naturally recorded camera motion**, does not inject shake or supply a motion CSV, and evaluates **independent image-based stability** in addition to the FIR trajectory. This software upgrade has **26/26 host tests PASS** and desktop smoke PASS; the updated GUI has **not** been reverified against your physical FPGA, and no naturally shaky real clip has yet satisfied the real-footage release gate. The previously validated bitstream is unchanged.
 
-## Interactive laptop demonstrator — GUI v0.7 (natural camera shake and roll)
+## Interactive laptop demonstrator — GUI v0.8 (natural camera shake and roll)
 
 The Windows desktop GUI now supports **three-axis X/Y/roll compensation**, **Normal/Strong FIR modes**, fixed image cropping with crop-loss reporting, and **File → Open video** (30 fps, 18–496 frames, up to 1280×720), **Import natural footage** (no injected motion or CSV) or separate synthetic tests, physical FPGA COM-port selection (COM4 on the tested workstation), a real 3-case hardware self-test, and **side-by-side synchronized video playback in the same window**, with motion curves, spectra, shake-reduction metrics and evidence exports.
 
