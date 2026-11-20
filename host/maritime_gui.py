@@ -33,7 +33,6 @@ from fixed_point_golden import FirReference
 from fpga_serial_client import run_batch
 from stabilize_video import inputs_from_csv
 from affine_stabilization import read_path
-from gui_help import open_help
 from prepare_natural_footage import prepare_natural_footage, probe_raw
 
 
@@ -41,8 +40,8 @@ class MaritimeGUI:
     def __init__(self, window: tk.Tk):
         self.window = window
         self.window.title('Maritime FPGA DSP | Camera Motion Stabilisation')
-        self.window.geometry('1490x990')
-        self.window.minsize(1120,760)
+        self.window.geometry('1440x850')
+        self.window.minsize(1150,690)
         self.window.configure(bg='#edf3f8')
         self.events: queue.Queue = queue.Queue()
         self._help_window = None
@@ -70,7 +69,7 @@ class MaritimeGUI:
         self.stat_x = tk.StringVar(value='—')
         self.stat_y = tk.StringVar(value='—')
         self.stat_roll = tk.StringVar(value='—')
-        self.profile = tk.StringVar(value='Strong')
+        self.profile = tk.StringVar(value='Normal')
         self.stat_frames = tk.StringVar(value='—')
         self.stat_run = tk.StringVar(value='—')
         self.axis = tk.StringVar(value='X')
@@ -82,274 +81,304 @@ class MaritimeGUI:
         self.window.bind('<F1>',lambda event:self.show_help())
 
     def _build(self):
-        """Responsive desktop dashboard: resizable video/analysis workspace."""
-        C = dict(bg='#edf3f8', panel='#ffffff', navy='#122e45', teal='#087f9b',
-                 text='#17334a', muted='#587084', line='#d7e3eb', pale='#eaf4f7')
-        self.palette=C
-        s=ttk.Style(self.window)
-        try: s.theme_use('clam')
-        except tk.TclError: pass
-        s.configure('TFrame',background=C['panel'])
-        s.configure('TLabel',background=C['panel'],foreground=C['text'],font=('Segoe UI',11))
-        s.configure('TButton',padding=(13,9),font=('Segoe UI',11),background='#edf2f6',foreground=C['text'],bordercolor=C['line'])
-        s.map('TButton',background=[('active','#dbe8f0'),('disabled','#f3f5f7')])
-        s.configure('Accent.TButton',padding=(16,10),font=('Segoe UI',11,'bold'),
-                    foreground='#ffffff',background=C['teal'],bordercolor=C['teal'])
-        s.map('Accent.TButton',background=[('active','#08647b'),('disabled','#a9bcc5')],
-              foreground=[('disabled','#e6eef2')])
-        s.configure('TCombobox',padding=7,font=('Segoe UI',11))
-        s.configure('TNotebook',background=C['panel'],borderwidth=0)
-        s.configure('TNotebook.Tab',font=('Segoe UI',11,'bold'),padding=(17,11),background='#e7eef3',foreground=C['muted'])
-        s.map('TNotebook.Tab',background=[('selected',C['panel']),('active','#d8ebf3')],foreground=[('selected',C['navy'])])
-        s.configure('TRadiobutton',font=('Segoe UI',11),background=C['panel'],foreground=C['text'])
+        """Three-tab UI: practical operation, full-size analysis, and help.
 
-        def label(parent,text,weight='normal',size=11,fg=None,bg=None,**kwargs):
-            return tk.Label(parent,text=text,font=('Segoe UI',size,weight),
-                            fg=fg or C['text'],bg=bg or C['panel'],**kwargs)
-        # Header is intentionally compact to give the analytics real screen space.
-        top=tk.Frame(self.window,bg=C['navy'],height=78)
-        top.pack(fill='x');top.pack_propagate(False)
-        label(top,'MARITIME  /  CAMERA STABILISATION',size=19,weight='bold',fg='#ffffff',bg=C['navy']).pack(side='left',padx=24)
-        self.header_pill=label(top,'ARTIX-7  •  FPGA FIR  •  OFFLINE X/Y/ROLL',size=10,weight='bold',fg='#bbebf4',bg=C['navy'])
-        self.header_pill.pack(side='right',padx=26)
-
-        # Input and board controls are grouped together and do not grow vertically.
-        bar=tk.Frame(self.window,bg=C['panel'],highlightbackground=C['line'],highlightthickness=1)
-        bar.pack(fill='x',padx=18,pady=(13,9))
-        caption=tk.Frame(bar,bg=C['panel']);caption.pack(fill='x',padx=16,pady=(9,3))
-        label(caption,'01   INPUT & BOARD CONNECTION',weight='bold',size=12,fg=C['navy']).pack(side='left')
-        ttk.Button(caption,text='Help / Steps   F1',command=self.show_help).pack(side='right',padx=(6,0))
-        ttk.Button(caption,text='Reset view',command=self.reset_view).pack(side='right')
-
-        r1=tk.Frame(bar,bg=C['panel']);r1.pack(fill='x',padx=14,pady=(5,4))
-        self.open_btn=ttk.Button(r1,text='Open video…',command=self.choose_video)
-        self.open_btn.pack(side='left',padx=(0,7))
-        self.real_btn=ttk.Button(r1,text='Import natural footage…',command=self.real_footage_dialog)
-        self.real_btn.pack(side='left',padx=5)
-        self.demo_btn=ttk.Button(r1,text='Synthetic test clip',command=self.make_demo)
-        self.demo_btn.pack(side='left',padx=5)
-        self.csv_btn=ttk.Button(r1,text='Lab trajectory CSV…',command=self.choose_csv)
-        self.csv_btn.pack(side='left',padx=5)
-        label(r1,'No shake is added to natural footage',fg=C['muted'],size=10).pack(side='right',padx=6)
-
-        r2=tk.Frame(bar,bg=C['panel']);r2.pack(fill='x',padx=16,pady=(4,5))
-        label(r2,'ARTY A7',weight='bold',size=10,fg=C['muted']).pack(side='left',padx=(0,8))
-        self.port_entry=ttk.Combobox(r2,textvariable=self.comport,width=9,state='normal')
-        self.port_entry.pack(side='left')
-        ttk.Button(r2,text='Detect COM ports',command=self.refresh_ports).pack(side='left',padx=7)
-        self.test_btn=ttk.Button(r2,text='Verify connection & FIR',command=self.hardware_test)
-        self.test_btn.pack(side='left',padx=(0,8))
-        self.hw_btn=ttk.Button(r2,text='Stabilise using FPGA',style='Accent.TButton',command=lambda:self.process(True))
-        self.hw_btn.pack(side='left',padx=6)
-        self.sw_btn=ttk.Button(r2,text='Software preview',command=lambda:self.process(False))
-        self.sw_btn.pack(side='left',padx=6)
-        label(r2,'Profile',weight='bold',size=10,fg=C['muted']).pack(side='left',padx=(15,6))
-        self.profile_combo=ttk.Combobox(r2,textvariable=self.profile,values=['Normal','Strong'],state='readonly',width=9)
-        self.profile_combo.pack(side='left',padx=(0,3))
-        info=tk.Frame(bar,bg=C['panel']);info.pack(fill='x',padx=16,pady=(1,9))
-        label(info,'VIDEO  ',fg=C['teal'],weight='bold',size=9).pack(side='left')
-        tk.Label(info,textvariable=self.video_info,font=('Segoe UI',10),fg=C['text'],bg=C['panel'],anchor='w').pack(side='left')
-        tk.Label(info,textvariable=self.motion_mode,font=('Segoe UI',9),fg=C['muted'],bg=C['panel'],anchor='e').pack(side='right',padx=5)
-
-        # Core fix: a draggable sash with independently usable video and plots.
-        self.workspace=tk.PanedWindow(self.window,orient='vertical',sashwidth=11,sashrelief='flat',
-                                      showhandle=False,bg=C['line'],borderwidth=0,opaqueresize=True)
-        self.workspace.pack(fill='both',expand=True,padx=18,pady=(0,8))
-        video_box=tk.Frame(self.workspace,bg=C['panel'],highlightthickness=1,highlightbackground=C['line'])
-        analysis_box=tk.Frame(self.workspace,bg=C['panel'],highlightthickness=1,highlightbackground=C['line'])
-        self.workspace.add(video_box,minsize=180,height=220,stretch='always')
-        self.workspace.add(analysis_box,minsize=270,height=470,stretch='always')
-        self.window.after(260,self._set_initial_sash)
-
-        video_head=tk.Frame(video_box,bg=C['panel']);video_head.pack(fill='x',padx=14,pady=(8,5))
-        label(video_head,'02   BEFORE / AFTER VIDEO',weight='bold',size=12,fg=C['navy']).pack(side='left')
-        ttk.Button(video_head,text='Enlarge analysis ↓',command=lambda:self.focus_panel('analysis')).pack(side='right')
-        view=tk.Frame(video_box,bg=C['panel']);view.pack(fill='both',expand=True,padx=12)
-        lframe=tk.Frame(view,bg=C['navy']);lframe.pack(side='left',fill='both',expand=True,padx=(0,5))
-        rframe=tk.Frame(view,bg=C['navy']);rframe.pack(side='left',fill='both',expand=True,padx=(5,0))
-        label(lframe,'ORIGINAL CAMERA VIDEO',weight='bold',size=10,fg='#d9eef5',bg=C['navy']).pack(fill='x',pady=(5,0))
-        self.after_title = label(rframe,'AFTER PROCESSING',weight='bold',size=10,fg='#d9eef5',bg=C['navy'])
-        self.after_title.pack(fill='x',pady=(5,0))
-        self.left=ttk.Label(lframe,text='Select a video to begin',anchor='center',background=C['navy'],
-                            foreground='white',font=('Segoe UI',12,'bold'))
-        self.right=ttk.Label(rframe,text='No processed video yet',anchor='center',background=C['navy'],
-                             foreground='white',font=('Segoe UI',12,'bold'))
-        self.left.pack(fill='both',expand=True)
-        self.right.pack(fill='both',expand=True)
-        controls=tk.Frame(video_box,bg=C['panel']);controls.pack(fill='x',padx=12,pady=(5,7))
-        self.play_btn=ttk.Button(controls,text='▶ Play',command=self.toggle_play,state='disabled')
-        self.play_btn.pack(side='left',padx=(0,9))
-        self.seek=ttk.Scale(controls,variable=self.seek_pos,from_=0,to=100,orient='horizontal')
-        self.seek.pack(side='left',fill='x',expand=True,padx=6)
-        self.seek.bind('<ButtonRelease-1>',self._seek_release)
-        self.frame_text=label(controls,'0 / 0',size=10,bg=C['panel'])
-        self.frame_text.pack(side='left',padx=10)
-        ttk.Button(controls,text='Open results',command=self.open_output).pack(side='right')
-
-        analysis_head=tk.Frame(analysis_box,bg=C['panel']);analysis_head.pack(fill='x',padx=14,pady=(7,2))
-        label(analysis_head,'03   VERIFICATION & PERFORMANCE',size=12,weight='bold',fg=C['navy']).pack(side='left')
-        ttk.Button(analysis_head,text='Expand charts ↗',command=self.open_analysis_window).pack(side='right',padx=(5,0))
-        ttk.Button(analysis_head,text='Enlarge video ↑',command=lambda:self.focus_panel('video')).pack(side='right')
-
-        metricrow=tk.Frame(analysis_box,bg=C['panel']);metricrow.pack(fill='x',padx=13,pady=(4,2))
-        for title,var in [('X MOTION REDUCTION',self.stat_x),('Y MOTION REDUCTION',self.stat_y),('ROLL REDUCTION',self.stat_roll),
-                          ('VIDEO FRAMES',self.stat_frames),('PROCESSING DURATION',self.stat_run)]:
-            tile=tk.Frame(metricrow,bg=C['pale'],highlightthickness=1,highlightbackground='#dcebf0')
-            tile.pack(side='left',fill='x',expand=True,padx=3)
-            label(tile,title,size=9,weight='bold',fg=C['muted'],bg=C['pale']).pack(anchor='w',padx=13,pady=(5,0))
-            tk.Label(tile,textvariable=var,font=('Segoe UI',18,'bold'),fg=C['teal'],bg=C['pale'],anchor='w').pack(anchor='w',padx=13,pady=(0,3))
-        statusframe=tk.Frame(analysis_box,bg=C['panel']);statusframe.pack(fill='x',padx=17,pady=(1,2))
-        tk.Label(statusframe,textvariable=self.validation,font=('Segoe UI',10,'bold'),fg=C['navy'],bg=C['panel'],anchor='w').pack(fill='x')
-        tk.Label(statusframe,textvariable=self.image_metric,font=('Segoe UI',10),fg=C['muted'],bg=C['panel'],anchor='w').pack(fill='x')
-
-        self.notebook=ttk.Notebook(analysis_box)
-        self.notebook.pack(fill='both',expand=True,padx=10,pady=(2,9))
-        charttab=ttk.Frame(self.notebook)
-        spectab=ttk.Frame(self.notebook)
-        imgtab=ttk.Frame(self.notebook)
-        logtab=ttk.Frame(self.notebook)
-        self.notebook.add(charttab,text='Motion curves')
-        self.notebook.add(spectab,text='Frequency analysis')
-        self.notebook.add(imgtab,text='Image stability')
-        self.notebook.add(logtab,text='Evidence / logs')
-        self.chartfig=Figure(figsize=(12,4),dpi=110,facecolor='#ffffff')
-        self.chartax=self.chartfig.add_subplot(111)
-        self.chartcanvas=FigureCanvasTkAgg(self.chartfig,master=charttab)
-        axisrow=ttk.Frame(charttab);axisrow.pack(fill='x',pady=(3,0))
-        ttk.Label(axisrow,text='Motion axis:').pack(side='left',padx=(10,5))
-        for v in ('X','Y','ROLL'):
-            ttk.Radiobutton(axisrow,text=v,variable=self.axis,value=v,command=self.draw_plots).pack(side='left',padx=9)
-        self.chartcanvas.get_tk_widget().pack(fill='both',expand=True,padx=4)
-        self.specfig=Figure(figsize=(12,4),dpi=110,facecolor='#ffffff')
-        self.specax=self.specfig.add_subplot(111)
-        self.speccanvas=FigureCanvasTkAgg(self.specfig,master=spectab)
-        self.speccanvas.get_tk_widget().pack(fill='both',expand=True,padx=4,pady=3)
-        self.imgfig=Figure(figsize=(12,4),dpi=110,facecolor='#ffffff')
-        self.imgax=self.imgfig.add_subplot(111)
-        self.imgcanvas=FigureCanvasTkAgg(self.imgfig,master=imgtab)
-        self.imgcanvas.get_tk_widget().pack(fill='both',expand=True,padx=4,pady=3)
-        self.log=scrolledtext.ScrolledText(logtab,height=7,wrap='word',font=('Consolas',11),
-                                           bg='#f8fbfd',fg=C['text'],relief='flat',padx=15,pady=12)
-        self.log.pack(fill='both',expand=True,padx=6,pady=5)
-        self.log.configure(state='disabled')
-        self.draw_image_metric();self.draw_plots()
-
-        foot=tk.Frame(self.window,bg=C['navy'],height=30)
-        foot.pack(fill='x');foot.pack_propagate(False)
-        tk.Label(foot,textvariable=self.status,anchor='w',font=('Segoe UI',10),fg='#e5f1f6',
-                 bg=C['navy']).pack(fill='both',padx=18)
-
-        m=tk.Menu(self.window,font=('Segoe UI',11))
-        file=tk.Menu(m,tearoff=False,font=('Segoe UI',11))
-        file.add_command(label='Open video…',command=self.choose_video)
-        file.add_command(label='Import naturally shaky footage…',command=self.real_footage_dialog)
-        file.add_command(label='Load lab trajectory CSV…',command=self.choose_csv)
-        file.add_command(label='Generate synthetic test clip',command=self.make_demo)
-        file.add_separator();file.add_command(label='Exit',command=self._close)
-        m.add_cascade(label='File',menu=file)
-        hw=tk.Menu(m,tearoff=False,font=('Segoe UI',11))
-        hw.add_command(label='Detect COM ports',command=self.refresh_ports)
-        hw.add_command(label='Verify physical FPGA',command=self.hardware_test)
-        hw.add_command(label='Process on hardware',command=lambda:self.process(True))
-        hw.add_command(label='Software preview (not hardware evidence)',command=lambda:self.process(False))
-        m.add_cascade(label='Hardware',menu=hw)
-        viewmenu=tk.Menu(m,tearoff=False,font=('Segoe UI',11))
-        viewmenu.add_command(label='Expand analysis charts',command=self.open_analysis_window)
-        viewmenu.add_command(label='Focus analysis panel',command=lambda:self.focus_panel('analysis'))
-        viewmenu.add_command(label='Focus video panel',command=lambda:self.focus_panel('video'))
-        m.add_cascade(label='View',menu=viewmenu)
-        helpmenu=tk.Menu(m,tearoff=False,font=('Segoe UI',11))
-        helpmenu.add_command(label='Operator guide / F1',command=self.show_help)
-        helpmenu.add_command(label='Program FPGA in Vivado',command=lambda:self.show_help('Program Arty A7'))
-        m.add_cascade(label='Help',menu=helpmenu)
-        self.window.configure(menu=m)
-        self.window.bind('<Control-o>',lambda e:self.choose_video())
-
-    def _set_initial_sash(self):
-        """Reserve roughly half the workspace for meaningful analytical figures."""
+        All firmware, video, UART, and reference-processing operations are
+        preserved from v0.7; only the presentation and navigation change.
+        """
+        C = dict(bg='#f2f5f8', panel='#ffffff', navy='#17354d', teal='#007f99',
+                 text='#243d50', muted='#60778a', line='#dce4eb', pale='#eef4f7')
+        self.palette = C
+        style = ttk.Style(self.window)
         try:
-            height=self.workspace.winfo_height()
-            if height>480:
-                self.workspace.sash_place(0,0,max(190,int(height*0.33)))
+            style.theme_use('clam')
         except tk.TclError:
             pass
+        style.configure('TFrame', background=C['panel'])
+        style.configure('TLabel', background=C['panel'], foreground=C['text'],
+                        font=('Segoe UI', 10))
+        style.configure('TButton', padding=(9, 6), font=('Segoe UI', 9),
+                        background='#edf2f6', foreground=C['text'], bordercolor=C['line'])
+        style.map('TButton', background=[('active', '#dce9f1'),
+                                         ('disabled', '#f5f6f8')])
+        style.configure('Accent.TButton', padding=(11, 6), font=('Segoe UI', 9, 'bold'),
+                        background=C['teal'], foreground='white', bordercolor=C['teal'])
+        style.map('Accent.TButton', background=[('active', '#00677e'),
+                                                ('disabled', '#a9bec8')],
+                  foreground=[('disabled', '#e8f1f4')])
+        style.configure('TCombobox', padding=4, font=('Segoe UI', 9))
+        style.configure('TNotebook', background=C['bg'], borderwidth=0)
+        style.configure('TNotebook.Tab', font=('Segoe UI', 10, 'bold'),
+                        padding=(22, 9), background='#e5ecf2', foreground=C['text'])
+        style.map('TNotebook.Tab', background=[('selected', C['panel']),
+                                                ('active', '#d8eaf2')],
+                  foreground=[('selected', C['teal'])])
+        style.configure('TRadiobutton', font=('Segoe UI', 10), background=C['panel'],
+                        foreground=C['text'])
+
+        # Compact application header, rather than multiple numbered sections.
+        header=tk.Frame(self.window,bg=C['navy'],height=52)
+        header.pack(fill='x'); header.pack_propagate(False)
+        tk.Label(header,text='MARITIME  /  CAMERA STABILISATION',
+                 font=('Segoe UI',15,'bold'),bg=C['navy'],fg='#f7fbfd').pack(side='left',padx=18)
+        tk.Label(header,text='ARTY A7   •   X / Y / ROLL FIR',
+                 font=('Segoe UI',9),bg=C['navy'],fg='#bed3de').pack(side='right',padx=18)
+
+        self.main_tabs=ttk.Notebook(self.window)
+        self.main_tabs.pack(fill='both',expand=True,padx=9,pady=(6,4))
+        self.implementation_tab=ttk.Frame(self.main_tabs)
+        self.assessment_tab=ttk.Frame(self.main_tabs)
+        self.help_tab=ttk.Frame(self.main_tabs)
+        self.main_tabs.add(self.implementation_tab,text='Implementation')
+        self.main_tabs.add(self.assessment_tab,text='Assessment')
+        self.main_tabs.add(self.help_tab,text='Help')
+
+        # All primary actions sit on ONE toolbar row. Specialised lab features
+        # are kept accessible in File, not crowding out the video.
+        toolbar=ttk.Frame(self.implementation_tab)
+        toolbar.pack(side='top',fill='x',padx=9,pady=(9,7))
+        self.open_btn=ttk.Button(toolbar,text='Open video',command=self.choose_video)
+        self.open_btn.pack(side='left',padx=(0,4))
+        ttk.Button(toolbar,text='Reset view',command=self.reset_view).pack(side='left',padx=(0,10))
+        ttk.Label(toolbar,text='COM').pack(side='left',padx=(0,4))
+        self.port_entry=ttk.Combobox(toolbar,textvariable=self.comport,width=7,state='normal')
+        self.port_entry.pack(side='left',padx=(0,4))
+        ttk.Button(toolbar,text='Detect ports',command=self.refresh_ports).pack(side='left',padx=(0,4))
+        self.test_btn=ttk.Button(toolbar,text='Verify FPGA',command=self.hardware_test)
+        self.test_btn.pack(side='left',padx=(0,10))
+        self.hw_btn=ttk.Button(toolbar,text='Stabilise using FPGA',style='Accent.TButton',
+                               command=lambda:self.process(True))
+        self.hw_btn.pack(side='left',padx=(0,4))
+        self.sw_btn=ttk.Button(toolbar,text='Software preview',command=lambda:self.process(False))
+        self.sw_btn.pack(side='left',padx=(0,10))
+        ttk.Label(toolbar,text='Smoothing').pack(side='left',padx=(0,4))
+        self.profile_combo=ttk.Combobox(toolbar,textvariable=self.profile,
+                                        values=['Normal','Strong'],state='readonly',width=8)
+        self.profile_combo.pack(side='left')
+        # Retain the specialised controls as real File menu actions.
+        self.demo_btn=ttk.Button(self.implementation_tab,text='Synthetic test',command=self.make_demo)
+        self.csv_btn=ttk.Button(self.implementation_tab,text='Lab trajectory',command=self.choose_csv)
+        self.real_btn=ttk.Button(self.implementation_tab,text='Prepare recording',command=self.real_footage_dialog)
+
+        # A single, small input-information line. Avoid displaying lengthy
+        # processing descriptions on top of the video or in large type.
+        info=tk.Frame(self.implementation_tab,bg=C['panel'])
+        info.pack(fill='x',padx=9,pady=(0,6))
+        tk.Label(info,textvariable=self.video_info,font=('Segoe UI',9),bg=C['panel'],
+                 fg=C['muted'],anchor='w').pack(fill='x',padx=9,pady=3)
+        self.motion_mode_label = None  # Details are in the Help tab and evidence.
+
+        # The complete remaining workspace belongs to the two synchronized
+        # video panels. No analysis charts share this vertical space.
+        video_area=tk.Frame(self.implementation_tab,bg=C['panel'])
+        video_area.pack(fill='both',expand=True,padx=9,pady=(0,6))
+        video_area.grid_rowconfigure(0,weight=1)
+        video_area.grid_columnconfigure(0,weight=1,uniform='video')
+        video_area.grid_columnconfigure(1,weight=1,uniform='video')
+        frames=[]
+        for column,title in [(0,'ORIGINAL VIDEO'),(1,'STABILISED VIDEO')]:
+            pane=tk.Frame(video_area,bg='#142b3c')
+            pane.grid(row=0,column=column,sticky='nsew',padx=(0,4) if column==0 else (4,0))
+            heading=tk.Label(pane,text=title,font=('Segoe UI',10,'bold'),
+                             bg='#142b3c',fg='#dde9ef')
+            heading.pack(fill='x',pady=(6,2))
+            if column==1:
+                self.after_title=heading
+            frames.append(pane)
+        self.left=ttk.Label(frames[0],text='Open a video to begin',anchor='center',
+                            background='#142b3c',foreground='#ffffff',
+                            font=('Segoe UI',11))
+        self.right=ttk.Label(frames[1],text='Process a video to see the result',
+                             anchor='center',background='#142b3c',foreground='#ffffff',
+                             font=('Segoe UI',11))
+        self.left.pack(fill='both',expand=True)
+        self.right.pack(fill='both',expand=True)
+        self._video_resize_job=None
+        for view in (self.left,self.right):
+            view.bind('<Configure>',self._on_video_resize,add='+')
+
+        playback=ttk.Frame(self.implementation_tab)
+        playback.pack(side='bottom',fill='x',padx=10,pady=(1,8))
+        self.play_btn=ttk.Button(playback,text='▶ Play',command=self.toggle_play,state='disabled')
+        self.play_btn.pack(side='left',padx=(0,8))
+        self.seek=ttk.Scale(playback,variable=self.seek_pos,from_=0,to=100,orient='horizontal')
+        self.seek.pack(side='left',fill='x',expand=True,padx=4)
+        self.seek.bind('<ButtonRelease-1>',self._seek_release)
+        self.frame_text=ttk.Label(playback,text='0 / 0',width=11)
+        self.frame_text.pack(side='left',padx=(12,5))
+        ttk.Button(playback,text='Results folder',command=self.open_output).pack(side='right',padx=(8,0))
+
+        # Assessment tab: large plotting region, all verification data together.
+        assess_top=ttk.Frame(self.assessment_tab)
+        assess_top.pack(fill='x',padx=12,pady=(12,5))
+        tiles=ttk.Frame(assess_top)
+        tiles.pack(fill='x')
+        for name,value in [('X reduction',self.stat_x),('Y reduction',self.stat_y),
+                           ('Roll reduction',self.stat_roll),('Frames',self.stat_frames),
+                           ('Elapsed',self.stat_run)]:
+            tile=tk.Frame(tiles,bg=C['pale'])
+            tile.pack(side='left',fill='x',expand=True,padx=3)
+            tk.Label(tile,text=name,font=('Segoe UI',9),bg=C['pale'],fg=C['muted']).pack(anchor='w',padx=12,pady=(7,0))
+            tk.Label(tile,textvariable=value,font=('Segoe UI',16,'bold'),bg=C['pale'],fg=C['navy']).pack(anchor='w',padx=12,pady=(0,7))
+        ttk.Label(assess_top,textvariable=self.validation).pack(fill='x',padx=6,pady=(9,1))
+        ttk.Label(assess_top,textvariable=self.image_metric).pack(fill='x',padx=6,pady=(0,4))
+
+        # Small view controls; the selected plot fills the remaining tab height.
+        plotbar=ttk.Frame(self.assessment_tab)
+        plotbar.pack(fill='x',padx=14,pady=(3,4))
+        self.assess_view=tk.StringVar(value='Motion curves')
+        for title in ('Motion curves','Frequency spectrum','Image stability','Evidence log'):
+            ttk.Radiobutton(plotbar,text=title,variable=self.assess_view,value=title,
+                            command=self._show_assessment_view).pack(side='left',padx=(0,17))
+        ttk.Label(plotbar,text='Axis:').pack(side='left',padx=(14,5))
+        for axis in ('X','Y','ROLL'):
+            ttk.Radiobutton(plotbar,text=axis,variable=self.axis,value=axis,
+                            command=self.draw_plots).pack(side='left',padx=(0,8))
+
+        self.assessment_content=ttk.Frame(self.assessment_tab)
+        self.assessment_content.pack(fill='both',expand=True,padx=14,pady=(0,12))
+        self._assess_widgets={}
+        for name in ('Motion curves','Frequency spectrum','Image stability'):
+            fig=Figure(figsize=(12,6),dpi=110,facecolor='#ffffff')
+            ax=fig.add_subplot(111)
+            canvas=FigureCanvasTkAgg(fig,master=self.assessment_content)
+            canvas.get_tk_widget().configure(bg='#ffffff')
+            self._assess_widgets[name]=canvas.get_tk_widget()
+            if name=='Motion curves':
+                self.chartfig,self.chartax,self.chartcanvas=fig,ax,canvas
+            elif name=='Frequency spectrum':
+                self.specfig,self.specax,self.speccanvas=fig,ax,canvas
+            else:
+                self.imgfig,self.imgax,self.imgcanvas=fig,ax,canvas
+        self.log=scrolledtext.ScrolledText(self.assessment_content,wrap='word',
+                                           font=('Consolas',10),bg='#f8fafc',
+                                           fg=C['text'],relief='flat',padx=12,pady=12)
+        self.log.configure(state='disabled')
+        self._assess_widgets['Evidence log']=self.log
+        self._show_assessment_view()
+
+        # Help is a proper third tab with readable sections, not another modal
+        # pop-up that obscures the active video.
+        help_frame=tk.Frame(self.help_tab,bg=C['panel'])
+        help_frame.pack(fill='both',expand=True,padx=18,pady=15)
+        self.help_text=scrolledtext.ScrolledText(help_frame,wrap='word',borderwidth=0,
+                           font=('Segoe UI',11),bg='#ffffff',fg=C['text'],
+                           padx=20,pady=16,spacing1=2,spacing3=7)
+        self.help_text.pack(fill='both',expand=True)
+        self.help_text.tag_configure('heading',font=('Segoe UI',16,'bold'),
+                                      foreground=C['navy'],spacing1=8,spacing3=13)
+        self.help_text.tag_configure('subheading',font=('Segoe UI',12,'bold'),
+                                      foreground=C['teal'],spacing1=12,spacing3=6)
+        self.help_text.tag_configure('body',font=('Segoe UI',11),
+                                      foreground=C['text'],lmargin1=4,lmargin2=4)
+        self.help_text.tag_configure('step',font=('Segoe UI',11),
+                                      foreground=C['text'],lmargin1=20,lmargin2=34,spacing3=10)
+        self._help_sections={}
+        def add_section(title,parts):
+            start=self.help_text.index('end-1c')
+            self.help_text.insert('end',title+'\n','subheading')
+            self._help_sections[title]=start
+            for item in parts:
+                self.help_text.insert('end',item+'\n','step')
+            self.help_text.insert('end','\n')
+        self.help_text.insert('end','Operator guide\n','heading')
+        self.help_text.insert('end','Arty A7-35T  |  Buffered USB-UART FIR processing  |  X / Y / roll\n\n','body')
+        add_section('Quick start',[
+            '1. Program the Arty A7 with the project bitstream in Vivado Hardware Manager after power-up.',
+            '2. Select the board COM port (previously COM4), then click Verify FPGA (3 bit-exact tests).',
+            '3. Choose Open video for a prepared 30 fps video, or File → Prepare original recording.',
+            '4. Choose Normal smoothing first, then Stabilise using FPGA.',
+            '5. Play the synchronized videos. Open Assessment for large motion and stability plots.'
+        ])
+        add_section('Program the FPGA in Vivado',[
+            'Connect the Arty A7 via USB, power the board and launch Vivado 2025.2.1.',
+            'If you have no bitstream, rebuild from the project root:',
+            r'  & "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source scripts/build_maritime_bitstream.tcl',
+            r'Open Hardware Manager → Open target → Auto Connect → Program Device.',
+            r'Select build\vivado_maritime_a7\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit.',
+            'After successful programming, select its USB-UART COM port. BTN0 resets the FPGA logic; Reset view resets only the GUI.'
+        ])
+        add_section('Implementation controls',[
+            'Open video — load a compatible MP4/MOV/AVI/M4V; 30 fps, up to 1280×720, 18–496 frames.',
+            'Reset view — clear displayed results; does not program or reset the board.',
+            'COM / Detect ports — choose the physical USB serial port and refresh the list.',
+            'Verify FPGA — send three reference cases and compare every returned result bit-for-bit.',
+            'Stabilise using FPGA — estimate X/Y/roll on the PC, filter via the physical FPGA and warp frames on the PC.',
+            'Software preview — run the same pipeline in Python, explicitly NOT hardware verification.',
+            'Smoothing: Normal = one 17-tap FIR pass per axis (3 jobs). Strong = two consecutive FIR passes per axis (6 jobs).',
+            'Strong is not automatically better: it can increase cropping and suppress intentional pans.',
+            'File menu → Prepare recording / Synthetic demo / Lab CSV are additional tools, not required for a normal video run.'
+        ])
+        add_section('Assessment',[
+            'Motion curves — original vs filtered X, Y or roll trajectory over time.',
+            'Frequency spectrum — compare attenuation across camera-motion frequencies.',
+            'Image stability — independent image-content registration before vs after (can be INCONCLUSIVE).',
+            'Evidence log — inspect bit-exact verification, output files, quality warnings and errors.',
+            'Numeric FIR improvements do not prove visibly improved images. Look at the videos and independent measurement.'
+        ])
+        add_section('Project scope',[
+            'The PC estimates camera motion and warps frames. The FPGA filters numeric X/Y/roll trajectories only.',
+            'This is an offline 30 fps demonstration; no camera/video signal is streamed directly through the FPGA.',
+            'Moving waves/ships, blur, limited background texture and perspective changes can reduce effectiveness.',
+            'Use licensed, genuinely recorded shaky maritime footage for final industrial evidence.'
+        ])
+        self.help_text.configure(state='disabled')
+
+        footer=tk.Frame(self.window,bg=C['navy'],height=27)
+        footer.pack(side='bottom',fill='x');footer.pack_propagate(False)
+        tk.Label(footer,textvariable=self.status,anchor='w',font=('Segoe UI',9),
+                 fg='#e9f3f7',bg=C['navy']).pack(fill='both',padx=12)
+
+        menu=tk.Menu(self.window,font=('Segoe UI',9))
+        fm=tk.Menu(menu,tearoff=False,font=('Segoe UI',9))
+        fm.add_command(label='Open video…',command=self.choose_video)
+        fm.add_command(label='Prepare original recording…',command=self.real_footage_dialog)
+        fm.add_separator()
+        fm.add_command(label='Generate synthetic test clip',command=self.make_demo)
+        fm.add_command(label='Load lab trajectory CSV…',command=self.choose_csv)
+        fm.add_separator();fm.add_command(label='Exit',command=self._close)
+        menu.add_cascade(label='File',menu=fm)
+        menu.add_command(label='Assessment',command=lambda:self.main_tabs.select(self.assessment_tab))
+        menu.add_command(label='Help',command=self.show_help)
+        self.window.configure(menu=menu)
+        self.window.bind('<Control-o>',lambda event:self.choose_video())
+        self.draw_image_metric(); self.draw_plots()
+
+    def _show_assessment_view(self):
+        """Show one full-height graph, not several postage-stamp plot panels."""
+        if not hasattr(self,'_assess_widgets'):
+            return
+        for widget in self._assess_widgets.values():
+            widget.pack_forget()
+        self._assess_widgets[self.assess_view.get()].pack(fill='both',expand=True)
+
+    def _on_video_resize(self,event=None):
+        """Re-render at the new full-height size after a window resize."""
+        if self._video_resize_job is not None:
+            try:self.window.after_cancel(self._video_resize_job)
+            except tk.TclError:pass
+        self._video_resize_job=self.window.after(180,self._refresh_video_size)
+
+    def _refresh_video_size(self):
+        self._video_resize_job=None
+        if self.capture and self.frames:
+            self._show_frame(self.frame_idx)
+        elif self.source:
+            self._show_source_frame()
 
     def focus_panel(self,which):
-        """One-click alternative to dragging the divider."""
-        try:
-            h=self.workspace.winfo_height()
-            if h>450:
-                self.workspace.sash_place(0,0,int(h*(.29 if which=='analysis' else .66)))
-        except tk.TclError:pass
+        self.main_tabs.select(self.assessment_tab if which=='analysis' else self.implementation_tab)
 
     def open_analysis_window(self):
-        """Standalone high-resolution engineering dashboard with three real plots."""
-        if self._analysis_window is not None:
-            try:
-                if self._analysis_window.winfo_exists():
-                    self._analysis_window.lift();self._analysis_window.focus_force();return
-            except tk.TclError:pass
-        w=tk.Toplevel(self.window)
-        self._analysis_window=w
-        w.title('Maritime FPGA DSP  |  Expanded engineering analysis')
-        w.geometry('1320x880');w.minsize(950,640)
-        w.configure(bg='#edf3f8')
-        header=tk.Frame(w,bg='#122e45');header.pack(fill='x')
-        tk.Label(header,text='ENGINEERING ANALYSIS  /  CAMERA MOTION',font=('Segoe UI',16,'bold'),
-                 fg='white',bg='#122e45').pack(side='left',padx=20,pady=16)
-        panel=tk.Frame(w,bg='white');panel.pack(fill='both',expand=True,padx=16,pady=12)
-        fig=Figure(figsize=(12,7),dpi=110,facecolor='white')
-        a,b,c=fig.subplots(2,2).flatten()[:3]
-        d=fig.axes[-1];d.set_axis_off()
-        if self.result is None:
-            for ax in (a,b,c):
-                ax.text(.5,.5,'Load and process a video to view results',ha='center',va='center',transform=ax.transAxes)
-                ax.set_axis_off()
-            d.text(.08,.6,'Hardware status',fontsize=16,fontweight='bold')
-            d.text(.08,.4,'No current video-processing result',fontsize=12)
-        else:
-            x,y=inputs_from_csv(self.result.trajectory)
-            a_raw=np.array(x,dtype=float)/256; a_fil=np.array(self.result.filtered_trajectory['x'],dtype=float)/256
-            b_raw=np.array(y,dtype=float)/256; b_fil=np.array(self.result.filtered_trajectory['y'],dtype=float)/256
-            t=np.arange(len(a_raw))/30
-            for ax,raw,fil,name in ((a,a_raw,a_fil,'Horizontal X'),(b,b_raw,b_fil,'Vertical Y')):
-                ax.plot(t,raw,label='Original motion',color='#547e9a',alpha=.85)
-                ax.plot(t,fil,label='FPGA-filtered' if self.result.metrics.get('hardware_verified') else 'Software-filtered',color='#00869e',linewidth=2)
-                ax.set(xlabel='Time (s)',ylabel='Displacement (px)',title=name+' camera trajectory')
-                ax.grid(alpha=.2);ax.legend(fontsize=9)
-            def spectrum(v):
-                v=v-np.mean(v)
-                return 20*np.log10(np.maximum(1e-8,np.abs(np.fft.rfft(v)))/len(v))
-            freq=np.fft.rfftfreq(len(a_raw),d=1/30.0)
-            c.plot(freq,spectrum(a_raw),label='Original',color='#547e9a')
-            c.plot(freq,spectrum(a_fil),label='Filtered',color='#00869e')
-            c.set(xlabel='Frequency (Hz)',ylabel='Relative magnitude (dB)',title='Horizontal motion spectrum')
-            c.grid(alpha=.2);c.legend(fontsize=9)
-            m=self.result.metrics
-            mode='PHYSICAL FPGA — BIT-EXACT' if m.get('hardware_verified') else 'SOFTWARE REFERENCE ONLY'
-            d.text(.03,.89,mode,fontsize=11,fontweight='bold',color='#007b91',va='top')
-            d.text(.03,.71,f"X reduction: {m['x']['reduction_pct']:.1f}%\nY reduction: {m['y']['reduction_pct']:.1f}%\nRoll reduction: {m.get('theta',{}).get('reduction_pct',float('nan')):.1f}%\nCrop retained: {m.get('crop',{}).get('area_retained_pct','N/A')}%\nProfile: {m.get('profile','Legacy')}\nFrames: {m['frames']}\nDuration: {self.result.elapsed_s:.2f} s",fontsize=10.5,linespacing=1.35,va='top')
-            q=m.get('image_stability',{})
-            d.text(.03,.14,('Image stability: '+str(q.get('status','Not evaluated'))),fontsize=11,va='top')
-        fig.subplots_adjust(left=.07,right=.97,bottom=.09,top=.93,wspace=.27,hspace=.36)
-        canvas=FigureCanvasTkAgg(fig,master=panel)
-        canvas.get_tk_widget().pack(fill='both',expand=True)
-        canvas.draw_idle()
-        bottom=tk.Frame(w,bg='#edf3f8');bottom.pack(fill='x',padx=20,pady=(0,12))
-        ttk.Button(bottom,text='Close dashboard',command=w.destroy).pack(side='right')
-        self._analysis_fig=fig
-        self._analysis_canvas=canvas
+        self.main_tabs.select(self.assessment_tab)
 
-    def show_help(self, tab: str | None = None):
-        self._help_window=open_help(self.window,self._help_window)
+    def show_help(self,tab:str|None=None):
+        self.main_tabs.select(self.help_tab)
         if tab:
-            tabs=self._help_window.winfo_children()[0].winfo_children()
-            # locate TNotebook without relying on its widget path
-            for child in tabs:
-                if isinstance(child,ttk.Notebook):
-                    for name in child.tabs():
-                        if child.tab(name,'text')==tab:
-                            child.select(name);break
+            heading='Program the FPGA in Vivado' if tab=='Program Arty A7' else tab
+            pos=self._help_sections.get(heading)
+            if pos:
+                self.help_text.see(pos)
 
     def real_footage_dialog(self):
         """Select and normalise a genuine recording; never inject vibration."""
@@ -530,7 +559,7 @@ class MaritimeGUI:
                     message,detail=payload
                     self._log('ERROR: '+detail)
                     self.validation.set('FAILED / UNVERIFIED — no hardware success claim')
-                    self.status.set('Processing failed. Check Evidence and log tab.')
+                    self.status.set('Processing failed. Open Assessment → Evidence log for details.')
                     messagebox.showerror('Processing failed',message)
                 elif kind=='natural_import':
                     self._set_busy(False)
@@ -603,7 +632,7 @@ class MaritimeGUI:
         ih,iw=frame.shape[:2]
         maxw=max(320,label.winfo_width()-8)
         maxh=max(150,label.winfo_height()-8)
-        scale=min(maxw/max(1,iw),maxh/max(1,ih),1.7)
+        scale=min(maxw/max(1,iw),maxh/max(1,ih),3.0)
         sw,sh=max(1,int(iw*scale)),max(1,int(ih*scale))
         if sw != iw or sh != ih:frame=cv2.resize(frame,(sw,sh),interpolation=cv2.INTER_AREA)
         rgb=cv2.cvtColor(frame,cv2.COLOR_BGR2RGB)
