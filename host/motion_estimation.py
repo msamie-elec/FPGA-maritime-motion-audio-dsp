@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-MAX_FRAMES = 496  # 17 taps, 8 repeated pads on both sides => <= 512 samples
+MAX_FRAMES = 1500  # host clips up to 50 seconds; 512-word UART batches overlap
 MIN_FRAMES = 18
 MAX_WIDTH, MAX_HEIGHT = 1280, 720
 MAX_BYTES = 125 * 1024 * 1024
@@ -47,7 +47,7 @@ def inspect_video(video_path: Path) -> VideoInfo:
         if not 29.5 <= fps <= 30.5:
             raise ValueError(f'Video is {fps:.2f} fps. This FIR is calibrated for 30 fps; please convert to 30 fps.')
         if not MIN_FRAMES <= frames <= MAX_FRAMES:
-            raise ValueError(f'Video has {frames} frames; supported {MIN_FRAMES}–{MAX_FRAMES} (about 0.6–16.5 seconds at 30 fps).')
+            raise ValueError(f'Video has {frames} frames; supported {MIN_FRAMES}–{MAX_FRAMES} (about 0.6–50 seconds at 30 fps).')
         ok, frame = cap.read()
         if not ok or frame is None:
             raise ValueError('Could not read first video frame.')

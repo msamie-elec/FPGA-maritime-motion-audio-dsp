@@ -10,6 +10,7 @@ import cv2
 from fixed_point_golden import centered_smooth
 from fpga_serial_client import run_two_axes
 from generate_synthetic_clip import generate
+from audio_preservation import mux_original_audio
 
 
 def inputs_from_csv(path:Path):
@@ -17,21 +18,27 @@ def inputs_from_csv(path:Path):
     return [int(r['x_q16_8']) for r in rows],[int(r['y_q16_8']) for r in rows]
 
 
-def smooth_trajectory(samples: list[int], port: str|None = None, axis_id:int=1):
-    # 8 replicate pads at each edge. Filter starts with ZERO history per axis.
-    padded=[samples[0]]*8+samples+[samples[-1]]*8
-    if len(padded)>512:
-        raise ValueError('This demonstration supports at most 496 frames, including pads')
-    if port:
-        from fpga_serial_client import run_batch
-        raw=run_batch(port,padded,axis_id)
-        golden=centered_smooth(samples)
-        values=raw[16:16+len(samples)]
-        if values!=golden:
-            raise AssertionError('FPGA and bit-exact golden differ; refusing hardware-validated video')
-        return values
-    return centered_smooth(samples)
-
+def smooth_trajectory(samples: list[int], port: str | None = None, axis_id: int = 1):
+    """FIR processing with overlapping 496-sample blocks for >512-frame clips."""
+    if not samples: return []
+    if port is None: return centered_smooth(samples)
+    from fpga_serial_client import run_batch
+    expected=centered_smooth(samples)
+    output=[]
+    for start in range(0,len(samples),496):
+        current=samples[start:start+496]
+        left=[samples[max(0,i)] for i in range(start-8,start)]
+        right=[samples[min(len(samples)-1,i)] for i in range(start+len(current),start+len(current)+8)]
+        packet=left+current+right
+        assert len(packet)<=512
+        result=run_batch(port,packet,axis_id)
+        if len(result)!=len(packet): raise AssertionError('Incomplete FPGA overlapping packet')
+        values=result[16:16+len(current)]
+        if values!=expected[start:start+len(current)]:
+            raise AssertionError(f'FPGA bit-exact mismatch at frame {start}, axis {axis_id}')
+        output.extend(values)
+    assert output==expected
+    return output
 
 def rms(v): return float(np.sqrt(np.mean(np.square(v))))
 
@@ -75,7 +82,8 @@ def stabilize(video_path:Path,trajectory_path:Path,output_dir:Path,port:str|None
         writer.write(pair);count+=1
     cap.release();writer.release()
     if count!=len(x):raise RuntimeError(f'frame mismatch: video={count}, trajectory={len(x)}')
-    metrics={'mode':mode,'frames':count,'source_video':video_path.name,'physical_port':port,
+    audio_info=mux_original_audio(outpath,video_path)
+    metrics={'mode':mode,'frames':count,'source_video':video_path.name,'physical_port':port,'audio':audio_info,
              'x':evaluate(x,fx),'y':evaluate(y,fy),'pass_target_30pct':False}
     metrics['pass_target_30pct']=(metrics['x']['reduction_pct']>=30 and metrics['y']['reduction_pct']>=30)
     (output_dir/'metrics.json').write_text(json.dumps(metrics,indent=2)+'\n')

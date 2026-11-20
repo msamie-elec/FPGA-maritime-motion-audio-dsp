@@ -8,6 +8,7 @@ import argparse, hashlib, json, math
 from pathlib import Path
 import cv2
 import numpy as np
+from audio_preservation import mux_original_audio
 
 RAW_EXTENSIONS={'.mp4','.mov','.m4v','.avi','.webm','.mkv'}
 
@@ -58,7 +59,7 @@ def prepare_natural_footage(source:Path,destination:Path,start_s:float=0.0,durat
     source=Path(source);destination=Path(destination)
     meta=probe_raw(source)
     if not (0.0<=start_s<meta['duration_s']):raise ValueError('Start is outside input video')
-    duration=min(float(duration_s),meta['duration_s']-start_s,496/30)
+    duration=min(float(duration_s),meta['duration_s']-start_s,1500/30)
     n=int(math.floor(duration*30))
     if n<18:raise ValueError('Clip must have at least 18 output frames at 30fps')
     width,height=output_size
@@ -83,14 +84,15 @@ def prepare_natural_footage(source:Path,destination:Path,start_s:float=0.0,durat
             writer.write(_letterbox(current,width,height))
     finally:
         writer.release();cap.release()
+    audio_info=mux_original_audio(destination,source,start_s=start_s)
     details={'source_kind':'REAL_VIDEO_USER_SUPPLIED_UNVERIFIED',
              'natural_motion':True,'injected_motion':False,
              'source_path':str(source),'source_sha256':file_sha256(source),
-             'source_metadata':meta,'clip_start_s':float(start_s),
+             'source_metadata':meta,'audio':audio_info,'clip_start_s':float(start_s),
              'clip_duration_s':n/30,'output_path':str(destination),
              'output_metadata':{'width':width,'height':height,'fps':30,'frames':n},
              'operations':['temporal_selection','nearest_timestamp_fps_normalisation','scale_preserve_aspect_letterbox'],
-             'notes':'No camera shake has been added. No trajectory CSV has been supplied; motion must be estimated from decoded footage. Audio not exported.',
+             'notes':'No camera shake has been added. No trajectory CSV has been supplied; motion must be estimated from decoded footage. Original audio preserved when present; noise removal not yet implemented.',
              'licence':'User must hold source recording rights or verify the source licence; this tool does not grant redistribution rights.'}
     (destination.parent/(destination.stem+'_source_provenance.json')).write_text(json.dumps(details,indent=2)+'\n',encoding='utf8')
     return destination,details

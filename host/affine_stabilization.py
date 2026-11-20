@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import cv2
 from stabilize_video import smooth_trajectory,evaluate
+from audio_preservation import mux_original_audio
 
 AXES=('x','y','theta')
 
@@ -127,12 +128,13 @@ def stabilise_affine(video_path:Path,trajectory_path:Path,output_dir:Path,
     finally:
         cap.release();writer.release()
     if n!=len(warps):raise RuntimeError(f'Wrong decoded-frame count {n} vs {len(warps)}')
+    audio_info=mux_original_audio(outpath,video_path)
     mode='PHYSICAL FPGA - BIT-EXACT VERIFIED' if port else 'SOFTWARE REFERENCE ONLY'
     measures={a:evaluate(raw[a],filtered[a]) for a in AXES}
     m={'mode':mode,'frames':n,'source_video':Path(video_path).name,'physical_port':port,
        **measures,'pass_target_30pct':all(measures[a]['reduction_pct']>=30 for a in AXES),
        'stabilisation_version':'v0.7_se2_affine','profile':profile,
-       'crop':crop,'correction_magnitude':{'mean_translation_column_px':float(np.mean(shift)),
+       'crop':crop,'audio':audio_info,'correction_magnitude':{'mean_translation_column_px':float(np.mean(shift)),
                                             'max_translation_column_px':float(np.max(shift))},
        'filtered_axes':list(AXES),
        'geometry':'S_i @ inverse(C_i), with centre-relative X/Y and image-plane roll',
