@@ -1,6 +1,6 @@
 # Audio FIR extension — v0.9 development candidate
 
-**Status (20 November 2026):** Host-side audio software reference tested; FPGA audio coefficient-bank RTL and serial regression authored. **Vivado synthesis, XSim/Icarus CI, and physical audio processing remain unverified until their respective runs pass.** The current working v0.8.2 video branch is preserved in GitHub `main`.
+**Status (20 November 2026):** Host-side audio software reference tested; 53/53 local Python tests pass, and the [dual-bank UART/FIR GitHub integration CI](https://github.com/msamie-elec/FPGA-maritime-motion-audio-dsp/actions/runs/44757024215) and standalone FIR CI both PASS. **Local Vivado synthesis, XSim, routed timing, and physical COM4 audio processing remain unverified.** The current working v0.8.2 video branch is preserved in GitHub `main`.
 
 ## Why the previous video interface was silent
 
@@ -96,6 +96,6 @@ Next extension (v1.0 proposal): measured recording with real engine/wind noise; 
 - [x] Batch overlap reproduces continuous FIR on mocked UART backend; mismatched hardware data rejected.
 - [x] WAV export and cleaned MP4 audio track validated in software.
 - [x] GUI three main tabs retained, audio dialog opens in desktop smoke.
-- [ ] Physical/audio-bank RTL integration regression and clean Vivado timing evaluated.
+- [x] Dual-bank audio/motion Icarus UART+FIR RTL CI PASS on GitHub.\n- [ ] Clean local Vivado XSim synthesis/route/DRC/timing evaluated.
 - [ ] New v0.9 audio bitstream programmed on Arty A7; actual COM4 samples bit-exact.
 - [ ] Voice intelligibility improvement independently measured; this low-pass may be insufficient.
