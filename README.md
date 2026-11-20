@@ -1,12 +1,14 @@
 # FPGA Maritime Video Stabilisation & Audio Noise Reduction
 
+**Current verified video baseline (20 November 2026): v0.8.2.** User confirmed working GUI and media workflow on Windows; 43/43 local non-display software tests pass. GUI's built-in image player is silent; exported MP4 audio is preserved and can be heard through **Play MP4 with audio** in the system player. Full 906-frame physical FPGA verification is still pending. See [verified baseline and limits](docs/VIDEO_BASELINE_2026_11_20.md). A new audio denoising development phase follows on a separate branch.
+
 **GUI v0.8.2:** Assessment labels source and software/FPGA mode, audio preserved in exported MP4, long videos supported by overlapping FIR batches, and sources/results organised under `videos/`. See [v0.8.2 notes](docs/GUI_V082_LONG_VIDEO_AUDIO.md).
 
 **v0.8.1 GUI CANDIDATE (20 November 2026):** Three main tabs (**Implementation**, **Assessment**, **Help**); one compact action row; maximised side-by-side video workspace; and full-height selectable analytical plots. **38/38 host tests PASS locally (including 3 playback tests); GUI desktop smoke and software-preview render PASS. Physical v0.8 GUI-to-Arty A7 test remains pending.** The FPGA RTL, coefficient ROM and Vivado bitstream workflow are unchanged.
 
 **Current status:** The existing CLI-controlled FIR/UART implementation passed physical Arty A7-35T verification on COM4 (17 November 2026, user-provided logs). **The new interactive GUI is a separate development candidate awaiting local hardware GUI testing.** This independent Artix-7 / SystemVerilog / Python demonstrator uses a real FPGA **17-tap motion FIR** to smooth camera-motion trajectories, while OpenCV renders the corrected image frames on the host. A separate audio filtering extension is planned; audio is **not** implemented in this release.
 
-**Three-axis foundation introduced in v0.7:** [Three-axis geometry, validation, limitations and Windows commands](docs/THREE_AXIS_V07.md). The older `integration-v0.6`, `feature/three-axis-v0.7`, and `feature/gui-three-tabs-v0.8` branches remain rollback baselines; use the v0.8.1 playback-fix branch for this candidate.
+**Three-axis foundation introduced in v0.7:** [Three-axis geometry, validation, limitations and Windows commands](docs/THREE_AXIS_V07.md). The older `integration-v0.6`, `feature/three-axis-v0.7`, and `feature/gui-three-tabs-v0.8` branches remain rollback baselines; use the latest maintained baseline branch for this candidate.
 
 **Start here:** [Fresh integration and Windows setup](docs/INTEGRATION_STATUS.md) · [Why videos can look unchanged](docs/VIDEO_STABILISATION_DIAGNOSTICS.md)
 
@@ -35,7 +37,7 @@ The interface keeps primary actions in one compact row and gives the rest of **I
 
 ## Interactive laptop demonstrator — GUI v0.8 (natural camera shake and roll)
 
-The Windows desktop GUI now supports **three-axis X/Y/roll compensation** with **Normal/Strong FIR modes** and fixed image cropping. **Implementation** includes File → Open video (30 fps, 18–496 frames, up to 1280×720), COM-port selection, connection testing, FPGA stabilisation and a full-size before/after player. For original footage preparation or synthetic lab input, use the **File** menu. **Assessment** and **Help** are separate main tabs. Normal applies one FIR pass per axis; Strong applies two, which can increase both suppression and crop loss.
+The Windows desktop GUI now supports **three-axis X/Y/roll compensation** with **Normal/Strong FIR modes** and fixed image cropping. **Implementation** includes File → Open video (30 fps, 18–1500 frames, up to 1280×720), COM-port selection, connection testing, FPGA stabilisation and a full-size before/after player. For original footage preparation or synthetic lab input, use the **File** menu. **Assessment** and **Help** are separate main tabs. Normal applies one FIR pass per axis; Strong applies two, which can increase both suppression and crop loss.
 
 ```powershell
 python -m pip install -r .\host\requirements.txt
