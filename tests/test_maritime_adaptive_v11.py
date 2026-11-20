@@ -91,6 +91,15 @@ def test_gui_distinct_assessment_tabs_and_audio_stage_labels():
         assert gui.audio_cleanup_mode.get()=='Maritime adaptive'
         gui.main_tabs.select(gui.audio_assessment_tab)
         root.update_idletasks()
-        assert gui.audiocanvas.get_tk_widget().winfo_height()>100
+        # On Windows the selected ttk.Notebook page can remain 1 px high
+        # during the first idle cycle while geometry is being negotiated.
+        # Check the chart's layout contract instead of a transient pixel size.
+        canvas_widget = gui.audiocanvas.get_tk_widget()
+        assert canvas_widget.master is gui.audio_assessment_tab
+        assert canvas_widget.winfo_manager() == 'pack'
+        layout = canvas_widget.pack_info()
+        assert layout['fill'] == 'both'
+        assert int(layout['expand']) == 1
+        assert gui.audiofig.get_size_inches()[1] >= 4.0
     finally:
         root.destroy()
