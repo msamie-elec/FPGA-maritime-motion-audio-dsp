@@ -1,21 +1,43 @@
-FPGA MARITIME VIDEO STABILISATION DSP — COMPLETE INTEGRATED DEVELOPMENT PACKAGE
-Package: FULL Integrated v0.2 (17 November 2026)
+FPGA MARITIME CAMERA STABILISATION — GUI v0.8 (20 November 2026)
 
-This package is NOT the earlier FIR-core-only archive.
-Before running tests confirm these files exist from this folder:
-  host\requirements.txt
-  scripts\run_all_local.ps1
-  rtl\arty_a7_maritime_top.sv
+THREE MAIN TABS: Implementation | Assessment | Help
 
-Windows PowerShell (open in this extracted folder):
-  Test-Path .\host\requirements.txt
-  Test-Path .\scripts\run_all_local.ps1
-  python -m pip install -r .\host\requirements.txt
-  powershell -ExecutionPolicy Bypass -File .\scripts\run_all_local.ps1
+This is a GUI-only revision on top of the v0.7 three-axis code.
+RTL, XDC, coefficients and bitstream scripts have not changed.
+Do not merge the new version into an older _3 or v0.7 folder.
 
-Expected: the two Test-Path commands return True.
-The unified runner executes Python tests, XSim UART/FIR regression,
-software-only video preview, and Vivado synthesis / bitstream.
-Stop on the first error and share the entire console output.
-This is a development build: board-level validation is still pending.
-Generated Vivado files and physical-hardware reports are not yet verified.
+1. Download branch feature/gui-three-tabs-v0.8 from GitHub.
+2. Extract into a NEW short folder, for example C:\FPGA\maritime_v08.
+3. Open PowerShell inside that folder and run:
+
+    python -m pip install -r .\host\requirements.txt
+    powershell -ExecutionPolicy Bypass -File .\scripts\run_gui_tests.ps1
+    powershell -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
+
+4. If the board needs a bitstream, close Vivado GUI and rebuild:
+
+    & "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source scripts/build_maritime_bitstream.tcl
+
+   Program the Arty A7 in Vivado Hardware Manager using:
+
+    build\vivado_maritime_a7\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit
+
+5. In the Implementation tab:
+   - Open video (30 fps compatible clip).
+   - Detect and select the Arty A7 COM port (previously COM4).
+   - Verify FPGA (3 bit-exact reference jobs).
+   - Start with Normal smoothing and click Stabilise using FPGA.
+   - Play the synchronized original and corrected videos in the enlarged view.
+
+6. In the Assessment tab: motion curves, spectrum, image stability, or logs
+   each have a large dedicated plot area.
+
+7. In the Help tab: programming steps and every control explained.
+   Normal = one 17-tap FIR pass per X/Y/roll axis, Strong = two passes.
+   Strong is not guaranteed to improve every video.
+
+Special test actions (source recording preparation, synthetic video, CSV)
+are in the File menu. They are not required for an ordinary video run.
+
+Local Python regression 35/35 PASS and Linux desktop tests PASS.
+This GUI release has not yet been independently revalidated on Windows COM4.
