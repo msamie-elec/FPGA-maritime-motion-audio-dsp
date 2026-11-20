@@ -18,6 +18,7 @@ module tb_maritime_uart_top;
   reg [23:0] payload_word;
   reg [7:0] lo,hi;
 `include "crc16_ccitt.svh"
+`include "audio_coefficients.svh"
   task automatic send_byte(input [7:0] data);
     integer b;
     begin
@@ -80,7 +81,10 @@ module tb_maritime_uart_top;
         recv_byte(b);value[7:0]=b;crc_resp=crc16_next(crc_resp,b);
         recv_byte(b);value[15:8]=b;crc_resp=crc16_next(crc_resp,b);
         recv_byte(b);value[23:16]=b;crc_resp=crc16_next(crc_resp,b);
-        if(impulse)
+        if(impulse && expect_job[7]) begin
+          if(i<17) expected=audio_coeff_at(i[4:0]);
+          else expected=0;
+        end else if(impulse)
           case(i)
             0:expected=-95;
             1:expected=-90;
@@ -109,6 +113,10 @@ module tb_maritime_uart_top;
    send_packet(8'h32,4,1,0);recv_checked(8'h32,2,0,0);
    // a new valid job proves recoverability and FIR history reset.
    send_packet(8'h33,4,0,0);recv_checked(8'h33,0,4,0);
+   // Audio-mode job: high job ID bit selects the independent speech FIR bank.
+   send_packet(8'h81,6,0,1);recv_checked(8'h81,0,6,1);
+   // Switching back must restore the original motion coefficient bank.
+   send_packet(8'h34,6,0,1);recv_checked(8'h34,0,6,1);
    $display("MARITIME_UART_FIR_REGRESSION_PASS jobs=%0d",tests);
    $finish;
   end

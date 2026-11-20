@@ -2,7 +2,7 @@
 // Batch processing: reset FIR history for each independent X or Y job.
 // Input RAM read is synchronous. Output RAM written on valid output.
 module fir_job_controller(
- input logic clk,rst,start,input logic [15:0] count,
+ input logic clk,rst,start,audio_mode,input logic [15:0] count,
  output logic [8:0] input_rd_addr,input logic signed [23:0] input_rd_data,
  output logic result_wr_en,output logic [8:0] result_wr_addr,
  output logic signed [23:0] result_wr_data,
@@ -18,7 +18,7 @@ module fir_job_controller(
  assign fir_in_valid=(state==SEND);
  assign input_rd_addr=sample_idx;
  assign busy=(state!=IDLE);
- fir_sequential u_fir(.clk(clk),.rst(fir_reset),.in_data(input_rd_data),
+ fir_sequential u_fir(.clk(clk),.rst(fir_reset),.audio_mode(audio_mode),.in_data(input_rd_data),
    .in_valid(fir_in_valid),.in_ready(fir_in_ready),.out_data(fir_out),.out_valid(fir_out_valid));
  always_ff @(posedge clk) begin
   if(rst) begin

@@ -9,8 +9,10 @@ if (-not (Test-Path (Join-Path $VivadoBin 'vivado.bat'))) {
     throw "Vivado not found at $VivadoBin. Use -VivadoBin 'C:\your_path\Vivado\bin'."
 }
 $env:PATH = "$VivadoBin;$env:PATH"
-Write-Host '[1/4] Running Python numerical and protocol tests'
-python -m pytest -q tests/test_fixed_point.py tests/test_serial_protocol.py tests/test_synthetic_maritime.py
+Write-Host '[1/4] Running Python motion/audio numerical and protocol tests'
+python host/design_audio_coefficients.py
+if ($LASTEXITCODE -ne 0) { throw 'Audio coefficient generation failed' }
+python -m pytest -q tests/test_fixed_point.py tests/test_serial_protocol.py tests/test_synthetic_maritime.py tests/test_audio_fir_v09.py
 if ($LASTEXITCODE -ne 0) { throw 'Python regression failed' }
 Write-Host '[2/4] Running full Vivado XSim serial UART + FIR regression'
 & powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run_maritime_xsim.ps1

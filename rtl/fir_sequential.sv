@@ -1,6 +1,6 @@
 `timescale 1ns / 1ps
 // SPDX-License-Identifier: MIT
-// 17-tap signed fixed-point motion FIR (build-time coefficient ROM).
+// Dual-bank 17-tap signed FIR: camera motion and offline speech low-pass.
 // Signed input/output: 24-bit Q16.8. Signed coeff: 16-bit Q1.15.
 // One 24x16 multiplier, 48-bit accumulator, 2 cycles per tap.
 // Truncation: arithmetic >>15; clamp to signed 24-bit output.
@@ -9,6 +9,7 @@
 module fir_sequential (
     input  logic                     clk,
     input  logic                     rst,
+    input  logic                     audio_mode, // High job_id bit selects audio coefficient bank
     input  logic signed [23:0]       in_data,
     input  logic                     in_valid,
     output logic                     in_ready,
@@ -28,6 +29,8 @@ module fir_sequential (
 
     // Generated constant-coefficient function. Packed 16-bit signed values.
 `include "fir_coefficients.svh"
+`include "audio_coefficients.svh"
+    wire signed [15:0] coeff = audio_mode ? audio_coeff_at(tap_idx) : coeff_at(tap_idx);
 
     assign in_ready = (state == IDLE) && !rst;
     assign scaled = accumulator >>> 15;
@@ -58,7 +61,7 @@ module fir_sequential (
                 MULTIPLY: begin
                     // A single signed multiplication is time-multiplexed across taps.
                     // Registered product isolates multiplier from MAC carry chain.
-                    product_reg <= $signed(sample_history[tap_idx]) * $signed(coeff_at(tap_idx));
+                    product_reg <= $signed(sample_history[tap_idx]) * $signed(coeff);
                     state <= ACCUMULATE;
                 end
                 ACCUMULATE: begin

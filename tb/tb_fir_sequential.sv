@@ -17,7 +17,7 @@ module tb_fir_sequential;
     int failures=0;
 
     fir_sequential dut (
-        .clk(clk),.rst(rst),.in_data(in_data),.in_valid(in_valid),
+        .clk(clk),.rst(rst),.audio_mode(1'b0),.in_data(in_data),.in_valid(in_valid),
         .in_ready(in_ready),.out_data(out_data),.out_valid(out_valid)
     );
 

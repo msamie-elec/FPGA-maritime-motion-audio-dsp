@@ -34,7 +34,7 @@ module arty_a7_maritime_top #(
  sample_buffer u_input_ram(.clk(CLK100MHZ),.wr_en(rx_wr_en),.wr_addr(rx_wr_addr),
    .wr_data(rx_wr_data),.rd_addr(job_rd_addr),.rd_data(job_rd_data));
  fir_job_controller u_fir_job(.clk(CLK100MHZ),.rst(rst),.start(state==START_JOB),
-   .count(active_count),.input_rd_addr(job_rd_addr),.input_rd_data(job_rd_data),
+   .count(active_count),.audio_mode(active_job[7]),.input_rd_addr(job_rd_addr),.input_rd_data(job_rd_data),
    .result_wr_en(result_wr_en),.result_wr_addr(result_wr_addr),
    .result_wr_data(result_wr_data),.done(job_done),.busy(job_busy));
  sample_buffer u_result_ram(.clk(CLK100MHZ),.wr_en(result_wr_en),.wr_addr(result_wr_addr),

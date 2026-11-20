@@ -47,6 +47,7 @@ class MaritimeGUI:
         self._help_window = None
         self._footage_window = None
         self._analysis_window = None
+        self._audio_window = None
         self.source: Path | None = None
         self.trajectory: Path | None = None
         self.result = None
@@ -65,7 +66,7 @@ class MaritimeGUI:
         self._img_right = None
         self.comport = tk.StringVar(value='')
         self.video_info = tk.StringVar(value='No video selected')
-        self.assessment_context = tk.StringVar(value='Source: none | Assessment: NOT RUN')
+        self.assessment_context = tk.StringVar(value='Source: none  |  Assessment: not run')
         self.motion_mode = tk.StringVar(value='Natural footage: automatic OpenCV motion estimation (no CSV or synthetic shake)')
         self.input_kind = 'NATURAL'
         self.image_metric = tk.StringVar(value='Independent image stability: not assessed')
@@ -218,7 +219,8 @@ class MaritimeGUI:
         # Assessment tab: large plotting region, all verification data together.
         assess_top=ttk.Frame(self.assessment_tab)
         assess_top.pack(fill='x',padx=12,pady=(8,5))
-        tk.Label(assess_top,textvariable=self.assessment_context,anchor='w',font=('Segoe UI',10,'bold')).pack(fill='x',padx=6,pady=(0,8))
+        tk.Label(assess_top,textvariable=self.assessment_context,anchor='w',
+                 font=('Segoe UI',10,'bold'),fg=C['navy'],bg=C['panel']).pack(fill='x',padx=6,pady=(0,8))
         tiles=ttk.Frame(assess_top)
         tiles.pack(fill='x')
         for name,value in [('X reduction',self.stat_x),('Y reduction',self.stat_y),
@@ -293,10 +295,10 @@ class MaritimeGUI:
         self.help_text.insert('end','Arty A7-35T  |  Buffered USB-UART FIR processing  |  X / Y / roll\n\n','body')
         add_section('Quick start',[
             '1. Program the Arty A7 with the project bitstream in Vivado Hardware Manager after power-up.',
-            '2. Select the board COM port (previously COM4), then click Verify FPGA (3 bit-exact tests).',
+            '2. Open a video. Software preview needs no board. For FPGA mode select COM (previously COM4), then Verify FPGA.',
             '3. Choose Open video for a prepared 30 fps video, or File → Prepare original recording.',
             '4. Choose Normal smoothing first, then Stabilise using FPGA.',
-            '5. Play the synchronized videos. Open Assessment for large motion and stability plots.'
+            '5. Play both videos; Assessment identifies source filename and SOFTWARE / PHYSICAL FPGA result.'
         ])
         add_section('Program the FPGA in Vivado',[
             'Connect the Arty A7 via USB, power the board and launch Vivado 2025.2.1.',
@@ -307,12 +309,12 @@ class MaritimeGUI:
             'After successful programming, select its USB-UART COM port. BTN0 resets the FPGA logic; Reset view resets only the GUI.'
         ])
         add_section('Implementation controls',[
-            'Open video — load a compatible MP4/MOV/AVI/M4V; 30 fps, up to 1280×720, 18–1500 frames.',
+            'Open video — load compatible 30-fps video from videos/ (18–1500 frames, up to 1280×720).',
             'Reset view — clear displayed results; does not program or reset the board.',
             'COM / Detect ports — choose the physical USB serial port and refresh the list.',
             'Verify FPGA — send three reference cases and compare every returned result bit-for-bit.',
             'Stabilise using FPGA — estimate X/Y/roll on the PC, filter via the physical FPGA and warp frames on the PC.',
-            'Software preview — run the same pipeline in Python, explicitly NOT hardware verification.',
+            'Software preview — run the same pipeline in Python, explicitly NOT hardware verification. This button is next to Reset view.',
             'Smoothing: Normal = one 17-tap FIR pass per axis (3 jobs). Strong = two consecutive FIR passes per axis (6 jobs).',
             'Strong is not automatically better: it can increase cropping and suppress intentional pans.',
             'File menu → Prepare recording / Synthetic demo / Lab CSV are additional tools, not required for a normal video run.'
@@ -321,14 +323,23 @@ class MaritimeGUI:
             'Motion curves — original vs filtered X, Y or roll trajectory over time.',
             'Frequency spectrum — compare attenuation across camera-motion frequencies.',
             'Image stability — independent image-content registration before vs after (can be INCONCLUSIVE).',
-            'Evidence log — inspect bit-exact verification, output files, quality warnings and errors.',
+            'Assessment title line — always shows source filename and SOFTWARE / PHYSICAL FPGA / NOT RUN status.\n            Evidence log — inspect bit-exact verification, output files, quality warnings and errors.',
             'Numeric FIR improvements do not prove visibly improved images. Look at the videos and independent measurement.'
         ])
         add_section('Project scope',[
             'The PC estimates camera motion and warps frames. The FPGA filters numeric X/Y/roll trajectories only.',
             'This is an offline 30 fps demonstration; no camera/video signal is streamed directly through the FPGA.',
             'Moving waves/ships, blur, limited background texture and perspective changes can reduce effectiveness.',
-            'Sources: videos/. Outputs: videos/sim/ (software) and videos/hrd/ (physical FPGA).\n            Original audio is retained in exported MP4. Use Play MP4 with audio for sound; the embedded viewer is silent.\n            Use licensed, genuinely recorded shaky maritime footage for final industrial evidence.'
+            'Sources live at videos/. Results are kept separately in videos/sim/ or videos/hrd/.\n            Videos up to 50 s are sent as overlapping FIR batches; no bitstream changes.\n            The original soundtrack stays in the exported MP4 when available; click Play MP4 with audio for system player. The embedded Tk video panels are silent. Audio noise filtering is a future phase.\n            Use licensed, genuinely recorded shaky maritime footage for final industrial evidence.'
+        ])
+        add_section('Audio noise reduction (v0.9)',[
+            'File → Audio noise reduction opens the offline WAV/MP4 audio-processing dialog.',
+            'Choose a 2–4 second segment (maximum 30 seconds), then Software preview to compare original and speech-band filtered sound.',
+            'Windows WAV Play buttons emit actual sound through your speakers. The embedded video frames remain silent.',
+            'A 16 kHz, mono, 17-tap 3.2 kHz speech low-pass attenuates hiss above the speech band. It will NOT remove engine or wind noise overlapping speech.',
+            'Hardware audio mode requires the NEW v0.9 FPGA bitstream: high job-ID bit selects the audio coefficient bank. The existing v0.8.2 bitstream is for video only.',
+            'The FPGA serial path is buffered and much slower than live audio. All hardware outputs must match the Python fixed-point reference bit-for-bit.',
+            'A/B listening WAVs, spectrum graph, and optional MP4 with filtered audio are exported to videos/sim/ or videos/hrd/.',
         ])
         self.help_text.configure(state='disabled')
 
@@ -344,6 +355,8 @@ class MaritimeGUI:
         fm.add_separator()
         fm.add_command(label='Generate synthetic test clip',command=self.make_demo)
         fm.add_command(label='Load lab trajectory CSV…',command=self.choose_csv)
+        fm.add_separator()
+        fm.add_command(label='Audio noise reduction (v0.9)…',command=self.open_audio_dialog)
         fm.add_separator();fm.add_command(label='Exit',command=self._close)
         menu.add_cascade(label='File',menu=fm)
         menu.add_command(label='Assessment',command=lambda:self.main_tabs.select(self.assessment_tab))
@@ -417,7 +430,7 @@ class MaritimeGUI:
             try:
                 starttime=float(startvar.get())
                 seconds=float(durationvar.get())
-                if starttime<0 or not .6<=seconds<=50:raise ValueError('Start >=0 and duration 0.6..50 seconds required')
+                if starttime<0 or seconds<.6 or seconds>50:raise ValueError('Start must be positive, and duration 0.6..50 seconds')
                 probe_raw(Path(filename))
             except Exception as e:
                 messagebox.showerror('Invalid footage',str(e),parent=win);return
@@ -526,7 +539,8 @@ class MaritimeGUI:
         self.status.set(('Sending motion data to the real Arty A7 on '+port if hardware else 'Running software-only preview')+' …')
         self.validation.set('Processing in progress — no results yet')
         mode=('PHYSICAL FPGA (COM '+port+')' if hardware else 'SOFTWARE REFERENCE (no FPGA)')
-        self.assessment_context.set(f'Source: {self.source.name if self.source else "none"} | Assessment: PROCESSING — {mode}')
+        self.assessment_context.set(
+            f'Source: {self.source.name if self.source else "none"}   |   Assessment: PROCESSING — {mode}')
         base=ROOT/'videos'/('hrd' if hardware else 'sim')
         import datetime
         dest=base/(datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f')+('_hardware' if hardware else '_software'))
@@ -566,7 +580,8 @@ class MaritimeGUI:
                 elif kind=='hardware_pass':
                     self._set_busy(False)
                     self.validation.set(f'PHYSICAL FPGA UART/FIR TEST PASS — {payload}: 3/3 cases, bit-exact (no video assessment)')
-                    self.assessment_context.set(f'Source: {self.source.name if self.source else "none"} | Assessment: NOT RUN — FPGA connection only verified')
+                    self.assessment_context.set(
+                        f'Source: {self.source.name if self.source else "none"}   |   Assessment: NOT RUN — FPGA connection only verified')
                     self.status.set('Hardware connected and numerical test passed. Select a video and process it.')
                 elif kind=='error':
                     self._set_busy(False)
@@ -596,8 +611,9 @@ class MaritimeGUI:
         if hasattr(self,'after_title'):
             self.after_title.configure(text='FPGA FILTERED — BIT-EXACT' if result.metrics.get('hardware_verified') else 'SOFTWARE PREVIEW — NOT FPGA')
         m=result.metrics
-        mode='PHYSICAL FPGA / bit-exact' if m.get('hardware_verified') else 'SOFTWARE REFERENCE / no FPGA'
-        self.assessment_context.set(f'Source: {result.video.name} | Assessment: {mode} | Smoothing: {m.get("profile","Normal")}')
+        mode=('PHYSICAL FPGA / bit-exact' if m.get('hardware_verified') else 'SOFTWARE REFERENCE / no FPGA')
+        self.assessment_context.set(
+            f'Source: {result.video.name}   |   Assessment: {mode}   |   Smoothing: {m.get("profile", "Normal")}')
         self.stat_x.set(f"{m['x']['reduction_pct']:.1f}%")
         self.stat_y.set(f"{m['y']['reduction_pct']:.1f}%")
         self.stat_roll.set(f"{m['theta']['reduction_pct']:.1f}%" if "theta" in m else "N/A")
@@ -825,7 +841,8 @@ class MaritimeGUI:
         if hasattr(self,'after_title'): self.after_title.configure(text='AFTER PROCESSING')
         for v in [self.stat_x,self.stat_y,self.stat_roll,self.stat_frames,self.stat_run]:v.set('—')
         self.validation.set('No video processing performed')
-        self.assessment_context.set(f'Source: {self.source.name if self.source else "none"} | Assessment: NOT RUN — original video only')
+        filename=self.source.name if self.source else 'none'
+        self.assessment_context.set(f'Source: {filename}   |   Assessment: NOT RUN — original video only')
         self.image_metric.set('Independent image stability: not assessed')
         self.draw_plots()
         self.draw_image_metric()
@@ -840,15 +857,124 @@ class MaritimeGUI:
         self.status.set('View cleared. FPGA hardware itself is unchanged; use BTN0 for a physical reset if required.')
         self._log('GUI reset view (does NOT reset the FPGA).')
 
+    def open_audio_dialog(self):
+        """Audio v0.9 prototype — separate UI, preserving the three main tabs."""
+        if self._audio_window is not None and self._audio_window.winfo_exists():
+            self._audio_window.lift()
+            return
+        import datetime
+        from audio_dsp import process
+        win=tk.Toplevel(self.window)
+        self._audio_window=win
+        win.title('Maritime DSP — Audio noise reduction (v0.9)')
+        win.geometry('840x530')
+        win.minsize(720,480)
+        box=ttk.Frame(win,padding=16);box.pack(fill='both',expand=True)
+        ttk.Label(box,text='OFFLINE AUDIO FILTER  /  16 kHz SPEECH BAND',
+                  font=('Segoe UI',15,'bold')).pack(anchor='w',pady=(0,10))
+        ttk.Label(box,text='Low-pass FIR: reduces high-frequency hiss; not an engine-noise separator. '
+                  'Software preview requires no FPGA. Physical mode requires the new v0.9 bitstream.',
+                  wraplength=790).pack(anchor='w',pady=(0,12))
+        source=tk.StringVar(value=str(self.source) if self.source is not None else '')
+        row=ttk.Frame(box);row.pack(fill='x',pady=(0,10))
+        ttk.Label(row,text='Source WAV / MP4').pack(side='left',padx=(0,8))
+        ttk.Entry(row,textvariable=source).pack(side='left',fill='x',expand=True,padx=(0,6))
+        def browse():
+            selected=filedialog.askopenfilename(parent=win,title='Choose media with an audio track',
+                initialdir=str(ROOT/'videos'),filetypes=[('Audio/video','*.wav *.mp3 *.m4a *.mp4 *.mov *.mkv'),('All files','*.*')])
+            if selected:source.set(selected)
+        ttk.Button(row,text='Browse…',command=browse).pack(side='left')
+        opts=ttk.Frame(box);opts.pack(fill='x',pady=(0,13))
+        ttk.Label(opts,text='Start (seconds)').pack(side='left',padx=(0,5))
+        start=tk.StringVar(value='0')
+        ttk.Entry(opts,textvariable=start,width=7).pack(side='left',padx=(0,16))
+        ttk.Label(opts,text='Duration (seconds)').pack(side='left',padx=(0,5))
+        seconds=tk.StringVar(value='4')
+        ttk.Entry(opts,textvariable=seconds,width=7).pack(side='left',padx=(0,16))
+        ttk.Label(opts,text='Hardware UART: '+(self.comport.get() or '(select COM in main GUI)')) .pack(side='left')
+        status=tk.StringVar(value='Select an audio source, then process with software or FPGA.')
+        ttk.Label(box,textvariable=status,wraplength=780,foreground='#086a83').pack(fill='x',pady=(0,8))
+        report=scrolledtext.ScrolledText(box,height=9,wrap='word',font=('Consolas',10))
+        report.pack(fill='both',expand=True,pady=(3,8))
+        result_dir={'path':None}
+        queue_audio=queue.Queue()
+        buttons=ttk.Frame(box);buttons.pack(fill='x')
+        def play(filename):
+            if not result_dir['path']:
+                messagebox.showinfo('Process first','Run audio filtering before playback.',parent=win);return
+            target=result_dir['path']/filename
+            if not target.is_file():
+                messagebox.showerror('Missing audio',str(target),parent=win);return
+            import os,subprocess
+            if sys.platform=='win32' and target.suffix.lower()=='.wav':
+                import winsound
+                winsound.PlaySound(str(target),winsound.SND_FILENAME|winsound.SND_ASYNC)
+            elif sys.platform=='win32':os.startfile(str(target))
+            elif sys.platform=='darwin':subprocess.Popen(['open',str(target)])
+            else:subprocess.Popen(['xdg-open',str(target)])
+        def launch(hardware):
+            try:
+                path=Path(source.get().strip())
+                if not path.is_file():raise ValueError('Select a valid media file')
+                offset=float(start.get());duration=float(seconds.get())
+                if not (0 <= offset <= 3600 and 0 < duration <= 30):
+                    raise ValueError('Start >= 0 and duration must be <= 30 seconds')
+                port=self.comport.get().strip() if hardware else None
+                if hardware and not port:raise ValueError('Select your actual COM port in the main window')
+                if hardware and not messagebox.askyesno('v0.9 hardware required',
+                    'Audio mode requires the NEW v0.9 bitstream. The older video-only bitstream cannot filter speech. '
+                    'Has the new bitstream been programmed?',parent=win):return
+            except Exception as ex:
+                messagebox.showerror('Invalid audio settings',str(ex),parent=win);return
+            sw_btn.configure(state='disabled');hw_btn.configure(state='disabled')
+            status.set('Processing audio via '+ ('PHYSICAL FPGA '+port if hardware else 'SOFTWARE REFERENCE')+'…')
+            folder=ROOT/'videos'/('hrd' if hardware else 'sim')/('audio_'+datetime.datetime.now().strftime('%Y%m%d_%H%M%S_%f'))
+            def worker():
+                try:queue_audio.put(('ok',folder,process(path,folder,port=port,start_s=offset,duration_s=duration)))
+                except Exception as ex:queue_audio.put(('err',str(ex),traceback.format_exc()))
+            threading.Thread(target=worker,daemon=True).start()
+            def check():
+                if not win.winfo_exists():return
+                try:item=queue_audio.get_nowait()
+                except queue.Empty:win.after(160,check);return
+                sw_btn.configure(state='normal');hw_btn.configure(state='normal')
+                if item[0]=='err':
+                    status.set('Audio processing FAILED — see details.')
+                    report.insert('end',item[1]+'\n'+item[2]);return
+                folder,metrics=item[1],item[2]
+                result_dir['path']=folder
+                a=metrics['analysis']
+                status.set(metrics['processing_mode']+'  |  '+metrics['source'])
+                report.delete('1.0','end')
+                report.insert('end',f"Sample rate: {metrics['sample_rate_hz']} Hz, mono\n"
+                    f"Samples: {metrics['samples']}\nFPGA jobs: {metrics['fpga_job_count']}\n"
+                    f"High-band 5–7.5 kHz change: {a['high_band_5_7k5_attenuation_db']} dB\n"
+                    f"Speech-band 250–3000 Hz change: {a['speech_band_250_3000_change_db']} dB\n"
+                    f"Output folder: {folder}\n\n"
+                    'A spectral reduction is NOT proof of improved speech intelligibility.\n')
+            win.after(160,check)
+        sw_btn=ttk.Button(buttons,text='Software audio preview',command=lambda:launch(False))
+        sw_btn.pack(side='left',padx=(0,6))
+        hw_btn=ttk.Button(buttons,text='Process on FPGA (new bitstream)',command=lambda:launch(True))
+        hw_btn.pack(side='left',padx=(0,6))
+        ttk.Button(buttons,text='▶ Original',command=lambda:play('audio_original.wav')).pack(side='left',padx=3)
+        ttk.Button(buttons,text='▶ Filtered',command=lambda:play('audio_filtered.wav')).pack(side='left',padx=3)
+        ttk.Button(buttons,text='▶ A/B',command=lambda:play('audio_AB_compare.wav')).pack(side='left',padx=3)
+        ttk.Button(buttons,text='Close',command=win.destroy).pack(side='right')
+
     def open_media_with_audio(self):
-        """Open source or comparison in OS media player to hear audio."""
-        path=self.result.side_by_side if self.result else self.source
+        """Open the exported video in the OS media player (Tk video view is silent)."""
+        path = self.result.side_by_side if self.result else self.source
         if path is None or not Path(path).is_file():
-            messagebox.showinfo('No video','Open a source video first.');return
-        import os,subprocess
-        if sys.platform=='win32':os.startfile(str(path))
-        elif sys.platform=='darwin':subprocess.Popen(['open',str(path)])
-        else:subprocess.Popen(['xdg-open',str(path)])
+            messagebox.showinfo('Select video','Choose a source or process a video first.')
+            return
+        import os, subprocess
+        if sys.platform == 'win32':
+            os.startfile(str(path))
+        elif sys.platform == 'darwin':
+            subprocess.Popen(['open',str(path)])
+        else:
+            subprocess.Popen(['xdg-open',str(path)])
 
     def open_output(self):
         if not self.result:
