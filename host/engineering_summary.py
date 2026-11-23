@@ -93,8 +93,10 @@ def collect(root=ROOT, live_metrics=None):
                     'failed_jobs':dat.get('failed_jobs'),'all_passed':dat.get('all_passed')})
         path=candidates[-1] if candidates else root/'evidence'/'reference_2026-11-20'/mode/'summary.json'
         dat=_json(path)
-        if dat and not candidates:
+        if not candidates:
             # If the most recent screenshot exists, do not let an older 20-Nov log supersede it.
+            # A source-only GitHub checkout has no older reference logs at all;
+            # still present the dated screenshot as OBSERVED evidence, not a missing trial.
             screenshot_runs=[x for x in observations if x.get('mode')==mode]
             if screenshot_runs:
                 chosen=screenshot_runs[-1]
