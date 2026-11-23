@@ -24,7 +24,7 @@ COEFF_MAX = (1 << (COEFF_BITS - 1)) - 1
 
 def load_coefficients(path: str | Path | None = None) -> tuple[int, ...]:
     if path is None:
-        path = Path(__file__).resolve().parents[1] / 'rtl' / 'fir_coefficients.txt'
+        path = Path(__file__).resolve().parents[1] / 'hardware' / 'rtl' / 'fir_coefficients.txt'
     values = tuple(int(line.strip()) for line in Path(path).read_text().splitlines() if line.strip() and not line.lstrip().startswith('#'))
     if len(values) != TAPS:
         raise ValueError(f'Expected {TAPS} FIR coefficients, got {len(values)}')
@@ -39,7 +39,7 @@ def load_coefficients(path: str | Path | None = None) -> tuple[int, ...]:
 
 def coefficient_sha256(path: str | Path | None = None) -> str:
     if path is None:
-        path = Path(__file__).resolve().parents[1] / 'rtl' / 'fir_coefficients.txt'
+        path = Path(__file__).resolve().parents[1] / 'hardware' / 'rtl' / 'fir_coefficients.txt'
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
 
 

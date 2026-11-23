@@ -1,0 +1,90 @@
+{
+  "name": "Maritime FPGA audiovisual engineering evidence and media-quality release",
+  "release_date": "2026-11-23",
+  "source_baseline": "Owner-verified RevD from 2026-11-23",
+  "vivado_rerun_required": false,
+  "reason": "No changes to FPGA RTL, XDC, coefficient header, or target device",
+  "rtl_and_xdc_identical_to_RevD": true,
+  "rtl_xdc_source_sha256": {
+    "hardware/constraints/arty_a7_35_maritime.xdc": "8cd4de1720a68ead4918adf274b93a30e0ca04a27c45337dfe37b516800a70c3",
+    "hardware/rtl/arty_a7_maritime_top.sv": "fb205b07e51bafa6286fd5e46da6239ba510d0cfafbbe314751d35bf070881a6",
+    "hardware/rtl/audio_coefficients.svh": "dbe65c1f11113af98db466300bdaf995917776f62669487435e6c86830a9eb24",
+    "hardware/rtl/audio_coefficients.txt": "d88d73d886f3a0d4c361f0f9328ad4522cb84aa06f7d0c6b635662a4448ac4ee",
+    "hardware/rtl/crc16_ccitt.svh": "715135a210eda57f6b809dde980e31ea827e03635a8f989f30c5b30b10f4c1f5",
+    "hardware/rtl/fir_coefficients.svh": "2575c9306ae0b3e95648821127c453f890c90d07ec99f2eaaccd277f21d9b57d",
+    "hardware/rtl/fir_coefficients.txt": "dcd20f90279e4d32f88aface3dfc0be25e94569122e1cba2e365970989cf1e7b",
+    "hardware/rtl/fir_job_controller.sv": "39811103e2a646d6aac0261843d83b79656ff0d4e7e2304c77c5abcfe8f39df0",
+    "hardware/rtl/fir_sequential.sv": "382ff18e67b4246616db4f3c458768c582a064731c8479e58dd6d0fa81bcb9bf",
+    "hardware/rtl/reset_sync.sv": "427dbd3b9fb8811d0b291acb118203c0bc720e0135440059702abd62143b7580",
+    "hardware/rtl/sample_buffer.sv": "b99b9eb9a63c4588654312dab5faed85cdcb2d2712758a626e6e36d67386ea13",
+    "hardware/rtl/uart_packet_rx.sv": "28a1e21a420d5aea5219e14c845cfc260547bc5517d1d82482a18024e0ca1c68",
+    "hardware/rtl/uart_packet_tx.sv": "25cfc96afa595e29a7fd0ef1a9407b23f91d91701f025a09aaa77ca35a530497",
+    "hardware/rtl/uart_rx.sv": "cdc69b442c65a9caa0f75d6610202d8ec3323a8c2accc4f6f11ef3f8e328f034",
+    "hardware/rtl/uart_tx.sv": "16bc6dd489e2d01d57ac0727045950ab1028d72a302c4647defcb38ced06d03f"
+  },
+  "implementation_evidence_source": "evidence/owner_2026-11-23_revd/reports (user uploads)",
+  "programmed_bitstream_sha256": "UNCONFIRMED_ON_DEVICE",
+  "estimated_power_not_measured": true,
+  "raw_clean_soak_results_present": false,
+  "host_test_results": "RevH local 87 passed, 11 skipped without graphical display; RevH Xvfb interactive commands/profile smoke PASSED; RevG previously reported 98/98 with Xvfb",
+  "github_publish_state": "local release package prepared, staging branch remote exists; push result requires explicit remote confirmation",
+  "release_branch": "release/maritime-av-evidence-2026-11-23",
+  "release_revision": "RevI release evidence: 36 measured XADC snapshots and GitHub staging robustness",
+  "xadc_die_temperature_status": "MEASURED_36_SNAPSHOTS_31.6_TO_32.4_C_LATEST_32.2_C_POST_PROCESSING",
+  "menu_design": "Single five-tab navigation; one Tools popover; audio cleanup visible on Implementation tab",
+  "xadc_die_temperature_source": "evidence/xadc_2026-11-23/xadc_snapshots.csv (archived operator measurements); local GUI prefers evidence/final_validation/xadc_snapshots.csv",
+  "gui_improvements": [
+    "approximate stage progress",
+    "cooperative cancellation between UART packets",
+    "cancellable host FFmpeg operations",
+    "Video Assessment Normal/Strong reference comparison",
+    "5-row Normal/Strong profile table with archived vs current-run provenance",
+    "Help subtab Testing & commands sourced from docs/TEST_AND_VERIFICATION_COMMANDS.md",
+    "Summary Report one-click Test commands navigation"
+  ],
+  "rtl_xdc_source_hashes_reverified_on_revg": true,
+  "test_commands_guide": "docs/TEST_AND_VERIFICATION_COMMANDS.md",
+  "profile_reference_json": "evidence/quality_2026-11-23_reference/normal_strong_reference.json",
+  "rtl_xdc_source_hashes_reverified_on_revh": true,
+  "xadc_snapshot_count": 36,
+  "xadc_summary": {
+    "date": "2026-11-23",
+    "status": "operator-provided actual Vivado Hardware Manager XADC snapshots",
+    "source": "xadc_snapshots.csv",
+    "observations": 36,
+    "earliest": "2026-11-23T13:03:24+0000",
+    "latest": "2026-11-23T14:30:17+0000",
+    "range_c": [
+      31.6,
+      32.4
+    ],
+    "latest_c": 32.2,
+    "by_operator_phase": {
+      "idle": {
+        "n": 14,
+        "mean_c": 31.871,
+        "min_c": 31.6,
+        "max_c": 32.0
+      },
+      "soak_end": {
+        "n": 2,
+        "mean_c": 31.9,
+        "min_c": 31.9,
+        "max_c": 31.9
+      },
+      "post_processing": {
+        "n": 20,
+        "mean_c": 32.065,
+        "min_c": 31.7,
+        "max_c": 32.4
+      }
+    },
+    "constraints": [
+      "Post_processing denotes after completing the GUI workload, not a temperature measurement during FPGA activity.",
+      "soak_end labels were entered in earlier sessions without confirmed sustained workloads and are not valid soak measurements.",
+      "No controlled ambient comparison or continuous log; no peak under load can be inferred.",
+      "The 0.071 W number is a routed vectorless power estimate, not measured FPGA or board watts."
+    ],
+    "mean_delta_post_vs_idle_c": 0.194
+  }
+}

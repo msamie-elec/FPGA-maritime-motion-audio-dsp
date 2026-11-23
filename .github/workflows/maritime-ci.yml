@@ -2,11 +2,12 @@ name: Maritime FPGA batch-UART integration and software demo
 on:
   push:
     paths:
-      - 'rtl/**'
-      - 'tb/**'
+      - 'hardware/rtl/**'
+      - 'hardware/sim/**'
       - 'host/**'
-      - 'tests/**'
-      - 'scripts/run_maritime_sim.sh'
+      - 'verification/**'
+      - 'hardware/vivado/**'
+      - 'hardware/build/maritime_a7.xpr'
       - '.github/workflows/maritime-ci.yml'
   pull_request:
   workflow_dispatch:
@@ -24,20 +25,26 @@ jobs:
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y iverilog ffmpeg xvfb
-          python -m pip install -q pytest numpy opencv-python-headless pyserial matplotlib pillow imageio-ffmpeg imageio-ffmpeg
+          python -m pip install -q pytest numpy opencv-python-headless pyserial matplotlib pillow imageio-ffmpeg
       - name: Software numerical, protocol and synthetic shake regression
         run: |
           python host/design_coefficients.py
+          python host/design_audio_coefficients.py
           python host/generate_vectors.py
-          python -m pytest -q tests/test_fixed_point.py tests/test_serial_protocol.py tests/test_synthetic_maritime.py
+          python -m pytest -q verification/model/tests/test_fixed_point.py verification/system/tests/test_serial_protocol.py verification/system/tests/test_synthetic_maritime.py
       - name: Three-axis host geometry and GUI pipeline regression
-        run: python -m pytest -q tests/test_gui_pipeline.py tests/test_natural_footage.py tests/test_three_axis_v07.py tests/test_long_media_v082.py
-      - name: Long video FIR-overlap and original audio-preservation regression
-        run: python -m pytest -q tests/test_long_media_v082.py
+        run: python -m pytest -q verification/system/tests/test_gui_pipeline.py verification/system/tests/test_natural_footage.py verification/system/tests/test_three_axis_v07.py verification/system/tests/test_long_media_v082.py verification/model/tests/test_audio_fir_v09.py verification/system/tests/test_unified_pipeline_v10.py verification/system/tests/test_maritime_adaptive_v11.py
       - name: Desktop video playback / replay regression
-        run: xvfb-run -a python -m pytest -q tests/test_gui_playback.py
-      - name: Full UART packet, FIR, reset/recovery RTL regression
-        run: bash scripts/run_maritime_sim.sh
+        run: xvfb-run -a python -m pytest -q verification/system/tests/test_gui_playback.py
+      - name: FIR frequency response, integer extremes, and engineering summary
+        run: |
+          python verification/model/industrial_filter_assessment.py --no-plots
+          python -m pytest -q verification/model/tests/test_engineering_assessment.py hardware/sim/checks verification/system/tests/test_release_validation_tools.py
+          python host/engineering_summary.py
+      - name: Dual coefficient-bank UART packet, FIR, reset/recovery RTL regression
+        run: |
+          bash hardware/sim/scripts/run_fir_sim.sh
+          bash hardware/sim/scripts/run_maritime_sim.sh
       - name: Export software-only visual preview and validate quality target
         run: |
           python host/stabilize_video.py --out build/maritime_demo

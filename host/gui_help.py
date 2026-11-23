@@ -31,7 +31,7 @@ Software preview only is NOT physical FPGA evidence.'''),
 
 Open video…
   Use an already compatible 30fps MP4/MOV/AVI/M4V, <1280x720,
-  18-496 frames. Motion is automatically estimated; no CSV is used.
+  18–1500 frames (0.6–50 s). Motion is automatically estimated; no CSV is used.
 
 Import natural footage…
   Select the ORIGINAL camera recording (MP4, MOV, WEBM, MKV, AVI).
@@ -58,10 +58,19 @@ Stabilise Video Using FPGA
   PC decodes video/estimates motion; FPGA filters X/Y and roll trajectories;
   PC warp-reconstructs two synchronized views and exports evidence.
   Normal = one FIR pass. Strong = two FIR passes for more smoothing.
+  The progress strip shows stages and approximate completion, not ETA.
+  Cancel processing requests a safe stop BETWEEN complete UART packets;
+  do not press FPGA BTN0 during processing or cancel.
   Excessive smoothing may crop more image or suppress deliberate camera motion.
 
 Software preview only
   Python numerical reference. CLEARLY NOT FPGA hardware evidence.
+
+Video Assessment -> Compare Normal / Strong
+  Re-run the two smoothing profiles entirely in software, showing
+  X/Y/roll trajectory reductions, crop retention and independently
+  measured image registration. May be INCONCLUSIVE on maritime footage.
+  Never claim profile comparisons are a new FPGA physical test.
 
 Reset view
   Clears GUI only, NOT physical FPGA; each new job resets FIR history.
@@ -85,7 +94,7 @@ The GUI does NOT have JTAG/FPGA programming access.
 2. Open Vivado Hardware Manager → Open target → Auto Connect.
 3. Check detected device is xc7a35t_0.
 4. Click Program device and browse to this working directory:
-   build\\vivado_maritime_a7\\maritime_a7.runs\\impl_1\\arty_a7_maritime_top.bit
+   hardware\\build\\maritime_a7.runs\\impl_1\\arty_a7_maritime_top.bit
 5. Program and check startup status is HIGH. No ILA debug cores is normal.
 6. Close Hardware Manager if it holds resources, open GUI, Detect COM
    ports, choose the board port (COM4 was used in prior testing).

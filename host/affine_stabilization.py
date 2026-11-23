@@ -10,6 +10,7 @@ from pathlib import Path
 import numpy as np
 import cv2
 from stabilize_video import smooth_trajectory,evaluate
+from processing_control import checkpoint, progress as notify
 from audio_preservation import mux_original_audio
 
 AXES=('x','y','theta')
@@ -24,15 +25,26 @@ def read_path(path:Path)->dict[str,list[int]]:
             'theta':[int(r['theta_q16_8']) for r in rows]}
 
 
-def smooth_axes(raw:dict,port:str|None,profile:str='Normal') -> dict:
+def smooth_axes(raw:dict,port:str|None,profile:str='Normal', *, cancel_event=None, progress=None) -> dict:
     if profile not in ('Normal','Strong'):
         raise ValueError('Profile must be Normal or Strong')
     filtered={}
+    count = len(AXES) * (2 if profile == 'Strong' else 1)
+    completed = 0
     for axis_id,axis in enumerate(AXES,1):
+        checkpoint(cancel_event)
         signal=raw[axis]
-        first=smooth_trajectory(signal,port,axis_id)
-        filtered[axis]=(smooth_trajectory(first,port,axis_id+3)
-                         if profile=='Strong' else first)
+        first=(smooth_trajectory(signal,port,axis_id,cancel_event=cancel_event)
+               if cancel_event is not None else smooth_trajectory(signal,port,axis_id))
+        completed += 1
+        notify(progress,'motion_fir',completed,count)
+        if profile == 'Strong':
+            filtered[axis]=(smooth_trajectory(first,port,axis_id+3,cancel_event=cancel_event)
+                            if cancel_event is not None else smooth_trajectory(first,port,axis_id+3))
+            completed += 1
+            notify(progress,'motion_fir',completed,count)
+        else:
+            filtered[axis]=first
     return filtered
 
 
@@ -88,10 +100,11 @@ def required_crop(warps:list[np.ndarray],width:int,height:int,min_retained_fract
 
 
 def stabilise_affine(video_path:Path,trajectory_path:Path,output_dir:Path,
-                      port:str|None,profile='Normal'):
+                      port:str|None,profile='Normal', *, cancel_event=None, progress=None):
     output_dir=Path(output_dir);output_dir.mkdir(parents=True,exist_ok=True)
+    checkpoint(cancel_event)
     raw=read_path(trajectory_path)
-    filtered=smooth_axes(raw,port,profile)
+    filtered=smooth_axes(raw,port,profile,cancel_event=cancel_event,progress=progress)
     cap=cv2.VideoCapture(str(video_path))
     if not cap.isOpened():raise RuntimeError('Unable to decode video')
     width=int(cap.get(cv2.CAP_PROP_FRAME_WIDTH));height=int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
@@ -105,6 +118,9 @@ def stabilise_affine(video_path:Path,trajectory_path:Path,output_dir:Path,
     n=0;shift=[]
     try:
         while True:
+            checkpoint(cancel_event)
+            if n == 0 or n % 12 == 0:
+                notify(progress,'video_render',n,len(warps))
             ok,frame=cap.read()
             if not ok:break
             if n>=len(warps):raise RuntimeError('Video contains more frames than trajectory')
@@ -127,8 +143,10 @@ def stabilise_affine(video_path:Path,trajectory_path:Path,output_dir:Path,
             n+=1
     finally:
         cap.release();writer.release()
+    checkpoint(cancel_event)
+    notify(progress,'video_render',n,len(warps))
     if n!=len(warps):raise RuntimeError(f'Wrong decoded-frame count {n} vs {len(warps)}')
-    audio_info=mux_original_audio(outpath,video_path)
+    audio_info = mux_original_audio(outpath, video_path,cancel_event=cancel_event)
     mode='PHYSICAL FPGA - BIT-EXACT VERIFIED' if port else 'SOFTWARE REFERENCE ONLY'
     measures={a:evaluate(raw[a],filtered[a]) for a in AXES}
     m={'mode':mode,'frames':n,'source_video':Path(video_path).name,'physical_port':port,

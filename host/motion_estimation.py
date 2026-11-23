@@ -12,7 +12,7 @@ from dataclasses import dataclass
 import cv2
 import numpy as np
 
-MAX_FRAMES = 1500  # host clips up to 50 seconds; 512-word UART batches overlap
+MAX_FRAMES = 1500  # host clips up to 50s; FPGA receives overlapping batches of <=512 samples
 MIN_FRAMES = 18
 MAX_WIDTH, MAX_HEIGHT = 1280, 720
 MAX_BYTES = 125 * 1024 * 1024

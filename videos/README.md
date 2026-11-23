@@ -1,13 +1,12 @@
-# Input videos and per-run evidence
+# Source videos and results
 
-Place reusable 30-fps source MP4s directly in this folder.
-- `00_Maritime_Short_Original.mp4` — 5 s, 640×360, no audio
-- `01_Maritime_Short_Original.mp4` — 5 s, 960×540, no audio
-- `02_Maritime_Long_30s_With_Audio.mp4` — 30.2 s, 960×540, AAC
+Place original or prepared, 30-fps compatible input MP4s directly in `videos/`.
+Do not put source material in `build/`, which is an expendable Vivado/temporary-work directory.
 
-The three media files are provided in the separate clean source+media ZIP; keep the originals in this folder in your local project. They are not yet in GitHub because redistribution rights are not established.
+- `videos/00_Maritime_Short_Original.mp4`
+- `videos/01_Maritime_Short_Original.mp4`
+- `videos/02_Maritime_Long_30s_With_Audio.mp4`
+- `videos/sim/<run-id>_software/`: each software-reference run and its evidence
+- `videos/hrd/<run-id>_hardware/`: actual hardware-returned data, verified bit-exact
 
-`sim/`: generated Python-reference comparisons, evidence, charts.
-`hrd/`: generated actual-Arty-A7-verified comparisons, evidence, charts.
-
-Do not use `build/` as the permanent user video library.
+Output subfolders are ignored by Git, but are saved locally. Raw videos are user-provided AI-origin test assets; check redistribution rights before publishing those MP4 files to a public GitHub repository.

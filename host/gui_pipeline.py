@@ -14,6 +14,7 @@ from generate_synthetic_clip import generate
 from stabilize_video import stabilize, inputs_from_csv
 from export_results import export_result_files
 from image_stability import compare_image_stability
+from processing_control import checkpoint, progress as notify
 
 
 @dataclass
@@ -28,7 +29,8 @@ class ProcessingResult:
     output_dir: Path
 
 
-def prepare_video(video: Path | None, trajectory: Path | None, output_dir: Path) -> tuple[Path, Path, dict]:
+def prepare_video(video: Path | None, trajectory: Path | None, output_dir: Path, *, cancel_event=None, progress=None) -> tuple[Path, Path, dict]:
+    checkpoint(cancel_event)
     output_dir.mkdir(parents=True,exist_ok=True)
     if video is None:
         v,t = generate(output_dir, duration=5.0, fps=30)
@@ -44,21 +46,26 @@ def prepare_video(video: Path | None, trajectory: Path | None, output_dir: Path)
             raise ValueError(f'Trajectory CSV has {len(x)} rows but video has {info.frames} frames.')
         return video,trajectory,{'method':'user_supplied_trajectory_csv','frames':info.frames,'fps':info.fps}
     target=output_dir/'estimated_camera_trajectory.csv'
-    meta=estimate_three_axis(video,target,output_dir/'motion_estimation_diagnostics.json')
+    meta=estimate_three_axis(video,target,output_dir/'motion_estimation_diagnostics.json',cancel_event=cancel_event,progress=progress)
     return video,target,meta
 
 
-def run_pipeline(video: Path | None, trajectory: Path | None, output_dir: Path, port: str | None, profile: str = "Normal") -> ProcessingResult:
+def run_pipeline(video: Path | None, trajectory: Path | None, output_dir: Path, port: str | None, profile: str = "Normal", *, cancel_event=None, progress=None) -> ProcessingResult:
     start=time.monotonic()
-    v,t,est=prepare_video(video,trajectory,output_dir)
-    output,metrics=(stabilise_affine(v,t,output_dir,port=port,profile=profile)
+    v,t,est=prepare_video(video,trajectory,output_dir,cancel_event=cancel_event,progress=progress)
+    checkpoint(cancel_event)
+    output,metrics=(stabilise_affine(v,t,output_dir,port=port,profile=profile,cancel_event=cancel_event,progress=progress)
                     if video is not None and trajectory is None
-                    else stabilize(v,t,output_dir,port=port))
+                    else stabilize(v,t,output_dir,port=port,cancel_event=cancel_event,progress=progress))
+    checkpoint(cancel_event)
+    notify(progress,'visual_assessment',0,1)
     filtered=json.loads((output_dir/'filtered_trajectory.json').read_text())
     metrics['estimation']=est
     metrics['filter_profile']=profile if video is not None and trajectory is None else 'Legacy FIR'
     metrics['motion_quality_warnings']=est.get('warnings',[]) 
-    metrics['image_stability']=compare_image_stability(output)
+    metrics['image_stability']=compare_image_stability(output,cancel_event=cancel_event)
+    checkpoint(cancel_event)
+    notify(progress,'visual_assessment',1,1)
     q=metrics['image_stability']
     metrics['visual_outcome']=(
         'IMPROVED' if q.get('status')=='MEASURED' and q.get('reduction_pct',0)>0 else

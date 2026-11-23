@@ -54,7 +54,7 @@ def prepare_natural_footage(source:Path,destination:Path,start_s:float=0.0,durat
     """Convert original recording into 30fps supported video, no new camera movement.
 
     Nearest-timestamp source frames are retained/duplicated to match 30 fps.
-    Output video carries no source audio (motion-only FIR demonstration).
+    The original soundtrack is retained without applying noise filtering.
     """
     source=Path(source);destination=Path(destination)
     meta=probe_raw(source)
@@ -92,7 +92,7 @@ def prepare_natural_footage(source:Path,destination:Path,start_s:float=0.0,durat
              'clip_duration_s':n/30,'output_path':str(destination),
              'output_metadata':{'width':width,'height':height,'fps':30,'frames':n},
              'operations':['temporal_selection','nearest_timestamp_fps_normalisation','scale_preserve_aspect_letterbox'],
-             'notes':'No camera shake has been added. No trajectory CSV has been supplied; motion must be estimated from decoded footage. Original audio preserved when present; noise removal not yet implemented.',
+             'notes':'No camera shake has been added. No trajectory CSV supplied; motion estimated from decoded footage. Audio preserved when present, not filtered.',
              'licence':'User must hold source recording rights or verify the source licence; this tool does not grant redistribution rights.'}
     (destination.parent/(destination.stem+'_source_provenance.json')).write_text(json.dumps(details,indent=2)+'\n',encoding='utf8')
     return destination,details

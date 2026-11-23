@@ -1,0 +1,20 @@
+{
+  "status": "USER-REPORTED CONSOLE OBSERVATIONS, NOT IMPORTED RAW SUCCESSFUL-RUN LOGS",
+  "source": "Owner's terminal screenshots shown in this conversation on 2026-11-23; full local results.csv and summary.json for passing trials have not been supplied",
+  "hardware": "Digilent Arty A7-35T; Vivado 2025.2.1; COM4",
+  "bitstream_on_device_sha256": null,
+  "environmental_temperature_C": null,
+  "test_runs": [
+    {"mode":"physical_av","date":"2026-11-23","passed_jobs":4,"failed_jobs":0,"audio_samples":48000,"source_type":"user_console_screenshot","bitstream_sha256":"UNCONFIRMED_ON_DEVICE"},
+    {"mode":"reset","date":"2026-11-23","passed_jobs":80,"failed_jobs":0,"total_jobs":80,"cycles":10,"source_type":"user_console_screenshot","bitstream_sha256":"UNCONFIRMED_ON_DEVICE"},
+    {"mode":"cold","date":"2026-11-23","passed_jobs":40,"failed_jobs":0,"total_jobs":40,"cycles":5,"source_type":"user_console_screenshot","bitstream_sha256":"UNCONFIRMED_ON_DEVICE"},
+    {"mode":"soak","date":"2026-11-23","run_directory":"soak_20261123T114008Z","passed_jobs":4523,"failed_jobs":141,"total_jobs":4664,"source_type":"attached_csv_and_json","failure_kind":"COM4 ACCESS_DENIED on open, no reported FPGA sample mismatch in completed jobs","bitstream_sha256":"UNCONFIRMED_ON_DEVICE"},
+    {"mode":"soak","date":"2026-11-23","run_directory":"soak_20261123T120250Z","passed_jobs":4408,"failed_jobs":0,"total_jobs":4408,"cycles":1102,"source_type":"user_console_screenshot","bitstream_sha256":"UNCONFIRMED_ON_DEVICE"}
+  ],
+  "limits": [
+    "Do not delete or replace failed-soak evidence with successful retest.",
+    "Screenshots are weaker provenance than original test-run CSV/JSON. Import original logs using scripts/import_local_validation_evidence.ps1.",
+    "Cold/reset actions manually reported; no independent on-board bitstream hash comparison.",
+    "15-minute workload is not a high-temperature/chamber qualification."
+  ]
+}

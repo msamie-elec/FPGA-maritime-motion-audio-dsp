@@ -1,0 +1,40 @@
+{
+  "date": "2026-11-23",
+  "status": "operator-provided actual Vivado Hardware Manager XADC snapshots",
+  "source": "xadc_snapshots.csv",
+  "observations": 36,
+  "earliest": "2026-11-23T13:03:24+0000",
+  "latest": "2026-11-23T14:30:17+0000",
+  "range_c": [
+    31.6,
+    32.4
+  ],
+  "latest_c": 32.2,
+  "by_operator_phase": {
+    "idle": {
+      "n": 14,
+      "mean_c": 31.871,
+      "min_c": 31.6,
+      "max_c": 32.0
+    },
+    "soak_end": {
+      "n": 2,
+      "mean_c": 31.9,
+      "min_c": 31.9,
+      "max_c": 31.9
+    },
+    "post_processing": {
+      "n": 20,
+      "mean_c": 32.065,
+      "min_c": 31.7,
+      "max_c": 32.4
+    }
+  },
+  "constraints": [
+    "Post_processing denotes after completing the GUI workload, not a temperature measurement during FPGA activity.",
+    "soak_end labels were entered in earlier sessions without confirmed sustained workloads and are not valid soak measurements.",
+    "No controlled ambient comparison or continuous log; no peak under load can be inferred.",
+    "The 0.071 W number is a routed vectorless power estimate, not measured FPGA or board watts."
+  ],
+  "mean_delta_post_vs_idle_c": 0.194
+}

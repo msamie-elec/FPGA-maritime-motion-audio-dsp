@@ -1,0 +1,79 @@
+{
+  "assessment": "END_TO_END_MEDIA_PROXY_METRICS",
+  "source_run": "verification/system/generated/quick_test_software",
+  "source_metrics_sha256": "ba1035d73a69b8d8328333592d68f5d4ff981428e8adfe1ed7621e9dce657da6",
+  "verification_provenance": "SOFTWARE REFERENCE ONLY; do not claim this run used FPGA",
+  "video": {
+    "input_frames": 90,
+    "source": "03_Unified_Quick_Test_3s.mp4",
+    "computation": "SOFTWARE-REFERENCE FIR + HOST WARP",
+    "high_frequency_motion_change_pct": {
+      "x": 8.138,
+      "y": 5.995,
+      "theta": 5.017
+    },
+    "image_registration": {
+      "status": "INCONCLUSIVE",
+      "reason": "insufficient natural background texture for independent image-based measurement"
+    },
+    "crop": {
+      "fraction": 0.96158,
+      "area_retained_pct": 92.46,
+      "valid_fov": true,
+      "warning": null
+    },
+    "claim": "independent image-movement reduction NOT ESTABLISHED"
+  },
+  "audio": {
+    "status": "MEASURED",
+    "physical_fir_verified": false,
+    "stages": {
+      "original": {
+        "samples": 48000,
+        "rms_pcm": 3839.533,
+        "peak_pcm": 17419,
+        "clip_fraction_pct": 0.0
+      },
+      "fpga_compatible_fir": {
+        "samples": 48000,
+        "rms_pcm": 3698.179,
+        "peak_pcm": 16467,
+        "clip_fraction_pct": 0.0
+      },
+      "final_hybrid": {
+        "samples": 48000,
+        "rms_pcm": 2549.672,
+        "peak_pcm": 13260,
+        "clip_fraction_pct": 0.0
+      }
+    },
+    "band_power_relative_to_original_db": {
+      "fpga_compatible_fir": {
+        "high_band_5_7k5_attenuation_db": -54.94,
+        "rumble_band_40_180_change_db": 0.0,
+        "speech_band_250_3000_change_db": -0.09,
+        "note": "Spectral-band attenuation, NOT a measured improvement in intelligibility or isolated noise suppression."
+      },
+      "final_hybrid": {
+        "high_band_5_7k5_attenuation_db": -57.6,
+        "rumble_band_40_180_change_db": -6.66,
+        "speech_band_250_3000_change_db": -3.07,
+        "note": "Spectral-band attenuation, NOT a measured improvement in intelligibility or isolated noise suppression."
+      }
+    },
+    "interpretation": "Band energy change does not establish intelligibility, isolated SNR or perceived quality.",
+    "source_samples": 48000,
+    "stage_sha256": {
+      "original": "264222181592cda58f9895a1ee82ad46299d73dd8f56b9d6699126bd1a7639cb",
+      "fpga_compatible_fir": "c23a72e24f851df272a105685cb141353ce545fe2aaa0e59108d382bf0caf225",
+      "final_hybrid": "e6d840e0c53eed8ab9efea4b6a3f1feee49976f99799fc54b68933949e518f67"
+    }
+  },
+  "limitations": [
+    "No clean ground-truth reference audio; no measured speech intelligibility/SNR.",
+    "Audio bands mix wanted speech and unwanted noise.",
+    "Trajectory smoothing is not a substitute for independent image-content stability.",
+    "Image registration can be INCONCLUSIVE for low-texture or moving-scene footage.",
+    "Host performs frame warping, final encoding and adaptive audio stage."
+  ]
+}

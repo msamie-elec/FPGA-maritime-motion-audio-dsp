@@ -9,6 +9,7 @@ import numpy as np
 import cv2
 from fixed_point_golden import centered_smooth
 from fpga_serial_client import run_two_axes
+from processing_control import checkpoint, progress as notify
 from generate_synthetic_clip import generate
 from audio_preservation import mux_original_audio
 
@@ -18,27 +19,52 @@ def inputs_from_csv(path:Path):
     return [int(r['x_q16_8']) for r in rows],[int(r['y_q16_8']) for r in rows]
 
 
-def smooth_trajectory(samples: list[int], port: str | None = None, axis_id: int = 1):
-    """FIR processing with overlapping 496-sample blocks for >512-frame clips."""
-    if not samples: return []
-    if port is None: return centered_smooth(samples)
+def smooth_trajectory(samples: list[int], port: str | None = None, axis_id: int = 1, *,
+                      cancel_event=None, progress=None):
+    """Centred FIR, with correct 8-sample overlap for multi-packet FPGA jobs.
+
+    At most 496 *new* trajectory samples fit in each 512-word UART job,
+    leaving 8 samples of actual left context and 8 of right context.
+    Each FPGA packet resets its FIR state, but overlap preserves the
+    exact continuous FIR output at EVERY internal segment boundary.
+    """
+    if not samples:
+        return []
+    checkpoint(cancel_event)
+    if port is None:
+        v = centered_smooth(samples)
+        notify(progress, "motion_fir", len(samples), len(samples))
+        return v
     from fpga_serial_client import run_batch
-    expected=centered_smooth(samples)
-    output=[]
-    for start in range(0,len(samples),496):
-        current=samples[start:start+496]
-        left=[samples[max(0,i)] for i in range(start-8,start)]
-        right=[samples[min(len(samples)-1,i)] for i in range(start+len(current),start+len(current)+8)]
-        packet=left+current+right
-        assert len(packet)<=512
-        result=run_batch(port,packet,axis_id)
-        if len(result)!=len(packet): raise AssertionError('Incomplete FPGA overlapping packet')
-        values=result[16:16+len(current)]
-        if values!=expected[start:start+len(current)]:
-            raise AssertionError(f'FPGA bit-exact mismatch at frame {start}, axis {axis_id}')
-        output.extend(values)
-    assert output==expected
-    return output
+    block_size = 512 - 16
+    expected_all = centered_smooth(samples)
+    actual = []
+    for start in range(0, len(samples), block_size):
+        checkpoint(cancel_event)  # do not interrupt a UART packet
+        segment = samples[start:start + block_size]
+        # Use global source history where available, replicate only real video edges.
+        left = [samples[max(0, i)] for i in range(start - 8, start)]
+        right = [samples[min(len(samples) - 1, i)] for i in range(start + len(segment), start + len(segment) + 8)]
+        padded = left + segment + right
+        assert 17 <= len(padded) <= 512
+        returned = run_batch(port, padded, axis_id)
+        if len(returned) != len(padded):
+            raise AssertionError("FPGA did not return full overlapping batch")
+        # With first valid target sample at padded index 8, causal output
+        # at sequence index 16 corresponds to that centred target.
+        block_out = returned[16:16 + len(segment)]
+        expected_block = expected_all[start:start + len(segment)]
+        if block_out != expected_block:
+            raise AssertionError(
+                f"FPGA FIR mismatch in job {axis_id}, frames {start}..{start+len(segment)-1}; "
+                "no hardware-verified result permitted"
+            )
+        actual.extend(block_out)
+        notify(progress, "motion_fir", len(actual), len(samples))
+    checkpoint(cancel_event)
+    assert actual == expected_all
+    return actual
+
 
 def rms(v): return float(np.sqrt(np.mean(np.square(v))))
 
@@ -54,11 +80,14 @@ def evaluate(original,filtered,frame_rate:int=30):
         'reduction_pct':float(100*(1-rms(hf(filt))/max(1e-12,rms(hf(orig)))))}
 
 
-def stabilize(video_path:Path,trajectory_path:Path,output_dir:Path,port:str|None=None):
+def stabilize(video_path:Path,trajectory_path:Path,output_dir:Path,port:str|None=None, *, cancel_event=None, progress=None):
     output_dir.mkdir(parents=True,exist_ok=True)
     x,y=inputs_from_csv(trajectory_path)
-    fx=smooth_trajectory(x,port,1)
-    fy=smooth_trajectory(y,port,2)
+    fx=smooth_trajectory(x,port,1,cancel_event=cancel_event)
+    checkpoint(cancel_event)
+    notify(progress, 'motion_fir', 1, 2)
+    fy=smooth_trajectory(y,port,2,cancel_event=cancel_event)
+    notify(progress, 'motion_fir', 2, 2)
     mode='PHYSICAL FPGA - BIT-EXACT VERIFIED' if port else 'SOFTWARE REFERENCE ONLY'
     cap=cv2.VideoCapture(str(video_path))
     if not cap.isOpened():raise RuntimeError('Cannot open input video')
@@ -68,7 +97,11 @@ def stabilize(video_path:Path,trajectory_path:Path,output_dir:Path,port:str|None
     writer=cv2.VideoWriter(str(outpath),cv2.VideoWriter_fourcc(*'mp4v'),fps,(2*width,height))
     if not writer.isOpened():raise RuntimeError('Cannot write MP4')
     count=0
-    while True:
+    try:
+      while True:
+        checkpoint(cancel_event)
+        if count == 0 or count % 12 == 0:
+            notify(progress,'video_render',count,len(x))
         ok,frame=cap.read()
         if not ok:break
         if count>=len(x):raise RuntimeError('input video has extra frames')
@@ -80,9 +113,12 @@ def stabilize(video_path:Path,trajectory_path:Path,output_dir:Path,port:str|None
             cv2.rectangle(pair,(offset,0),(offset+width,28),(18,36,53),-1)
             cv2.putText(pair,label,(offset+12,20),cv2.FONT_HERSHEY_SIMPLEX,0.48,(245,245,245),1,cv2.LINE_AA)
         writer.write(pair);count+=1
-    cap.release();writer.release()
+    finally:
+      cap.release();writer.release()
+    checkpoint(cancel_event)
+    notify(progress,'video_render',count,len(x))
     if count!=len(x):raise RuntimeError(f'frame mismatch: video={count}, trajectory={len(x)}')
-    audio_info=mux_original_audio(outpath,video_path)
+    audio_info = mux_original_audio(outpath, video_path,cancel_event=cancel_event)
     metrics={'mode':mode,'frames':count,'source_video':video_path.name,'physical_port':port,'audio':audio_info,
              'x':evaluate(x,fx),'y':evaluate(y,fy),'pass_target_30pct':False}
     metrics['pass_target_30pct']=(metrics['x']['reduction_pct']>=30 and metrics['y']['reduction_pct']>=30)

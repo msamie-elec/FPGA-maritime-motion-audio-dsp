@@ -1,4 +1,4 @@
-build/
+/build/
 .Xil/
 *.log
 *.jou
@@ -12,8 +12,47 @@ __pycache__/
 *.dcp
 private_media/
 
-# User-facing media output folders (input sources are separate)
+# Generated comparison runs: retain source MP4s in videos/, not derived artifacts
 videos/sim/*
 videos/hrd/*
 !videos/sim/.gitkeep
 !videos/hrd/.gitkeep
+
+# The bundled demo MP4s are available in local ZIP releases; do not redistribute by default
+videos/*.mp4
+
+# Engineering validation output
+evidence/final_validation/
+evidence/local_build_archive/
+
+
+# Generated only when portable Vivado GUI project is opened
+vivado/*.cache/
+vivado/*.hw/
+vivado/*.ip_user_files/
+vivado/*.runs/
+vivado/*.sim/
+vivado/*.srcs/
+vivado/*.gen/
+vivado/*.xpr.user
+vivado/*.lpr
+vivado/.Xil/
+verification/model/generated/
+verification/system/generated/
+
+# FPGA outputs: one tracked native XPR, all other generated Vivado files ignored
+!hardware/build/
+hardware/build/*
+!hardware/build/maritime_a7.xpr
+!hardware/build/README.md
+hardware/build_archive/
+hardware/vivado/.Xil/
+hardware/sim/**/*.vvp
+hardware/sim/**/*.wdb
+# Generated numerical/system analysis is repeatable, not source code
+verification/model/generated/
+verification/system/generated/
+# Never stage private machine paths and unreviewed physical raw data by default
+evidence/owner_2026-11-23_revd/reports/
+evidence/owner_2026-11-23_revd/soak_failed_20261123T114008Z/
+evidence/owner_2026-11-23_revd/report_file_hashes.json
