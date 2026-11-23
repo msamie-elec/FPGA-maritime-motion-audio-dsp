@@ -11,7 +11,7 @@ param(
 $ErrorActionPreference = 'Stop'
 Set-Location (Resolve-Path (Join-Path $PSScriptRoot '..'))
 $root = (Get-Location).Path
-$bitstream = Join-Path $root 'build\vivado_maritime_a7\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit'
+$bitstream = Join-Path $root 'hardware\build\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit'
 if (-not (Test-Path $bitstream)) { throw "Bitstream not found: $bitstream. Run the integrated Vivado build first." }
 foreach ($p in @('host\hardware_smoke.py','host\stabilize_video.py','host\requirements.txt')) {
     if (-not (Test-Path $p)) { throw "Required project file missing: $p" }
@@ -51,7 +51,7 @@ try {
     } else {
         Write-Host '[2/2] Video intentionally skipped; motion-video release remains UNVERIFIED'
     }
-    $reports = Join-Path $root 'build\vivado_maritime_a7\reports'
+    $reports = Join-Path $root 'hardware\build\reports'
     if (Test-Path $reports) {
         $reportDest = Join-Path $evidence "vivado_reports_${stamp}"
         New-Item -ItemType Directory -Force -Path $reportDest | Out-Null

@@ -13,7 +13,7 @@ $root = (Resolve-Path (Join-Path $PSScriptRoot '..')).Path
 Set-Location $root
 $vivado = Join-Path $VivadoBin 'vivado.bat'
 if (!(Test-Path $vivado)) { throw "Missing Vivado installation: $vivado" }
-if (!(Test-Path 'rtl\audio_coefficients.svh')) { throw 'Missing audio coefficient ROM; this is not the dual-bank source' }
+if (!(Test-Path 'hardware\rtl\audio_coefficients.svh')) { throw 'Missing audio coefficient ROM; this is not the dual-bank source' }
 $env:PATH = "$VivadoBin;$env:PATH"
 $stamp = Get-Date -Format 'yyyyMMdd_HHmmss'
 $evidence = Join-Path $root "evidence\build\$stamp"
@@ -31,22 +31,24 @@ try {
   if ($LASTEXITCODE -ne 0) { throw 'Failed to generate audio coefficient ROM' }
   if (!$SkipSoftwareTests) {
     Write-Host '[2/4] Run software regression in two groups'
-    & python -m pytest -q tests/test_fixed_point.py tests/test_serial_protocol.py tests/test_synthetic_maritime.py tests/test_gui_pipeline.py tests/test_natural_footage.py tests/test_three_axis_v07.py tests/test_gui_playback.py tests/test_gui_audio_playback_v102.py tests/test_long_media_v082.py tests/test_audio_fir_v09.py tests/test_dual_bank_physical_verifier.py
+    & python -m pytest -q verification/model/tests/test_fixed_point.py verification/system/tests/test_serial_protocol.py verification/system/tests/test_synthetic_maritime.py verification/system/tests/test_gui_pipeline.py verification/system/tests/test_natural_footage.py verification/system/tests/test_three_axis_v07.py verification/system/tests/test_gui_playback.py verification/system/tests/test_gui_audio_playback_v102.py verification/system/tests/test_long_media_v082.py verification/model/tests/test_audio_fir_v09.py verification/system/tests/test_dual_bank_physical_verifier.py
     if ($LASTEXITCODE -ne 0) { throw 'Software regression group 1 FAILED' }
-    & python -m pytest -q tests/test_unified_pipeline_v10.py
+    & python -m pytest -q verification/system/tests/test_unified_pipeline_v10.py
     if ($LASTEXITCODE -ne 0) { throw 'Software regression group 2 FAILED' }
   } else {
     Write-Host '[2/4] SKIPPED host tests by user option; this does not indicate a verified software build.'
   }
   Write-Host '[3/4] Vivado XSim: UART + dual-bank FIR + bank switching'
-  & powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\run_maritime_xsim.ps1
+  & powershell -NoProfile -ExecutionPolicy Bypass -File .\hardware\sim\scripts\run_maritime_xsim.ps1
   if ($LASTEXITCODE -ne 0) { throw 'Vivado XSim FAILED; stop before implementation' }
+  & powershell -NoProfile -ExecutionPolicy Bypass -File .\hardware\sim\scripts\run_fir_xsim.ps1
+  if ($LASTEXITCODE -ne 0) { throw 'Core dual-bank FIR XSim FAILED; stop before implementation' }
   Write-Host '[4/4] Vivado synthesis, place/route, bitstream and post-route reports'
-  & $vivado -mode batch -source scripts/build_maritime_bitstream.tcl
+  & $vivado -mode batch -source hardware/vivado/build_maritime_bitstream.tcl
   if ($LASTEXITCODE -ne 0) { throw 'Vivado synthesis/implementation FAILED' }
-  $bit = Join-Path $root 'build\vivado_maritime_a7\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit'
+  $bit = Join-Path $root 'hardware\build\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit'
   if (!(Test-Path $bit)) { throw "Expected bitstream missing: $bit" }
-  $reportDir = Join-Path $root 'build\vivado_maritime_a7\reports'
+  $reportDir = Join-Path $root 'hardware\build\reports'
   foreach ($rpt in @('utilization_routed.rpt', 'timing_routed.rpt', 'drc_routed.rpt')) {
     $p = Join-Path $reportDir $rpt
     if (!(Test-Path $p)) { throw "Missing implementation report: $p" }

@@ -24,7 +24,7 @@ UART 115200 baud, 8N1, independent from Xilinx JTAG, little-endian binary data, 
 | Version | 1 | `01` |
 | Command | 1 | `81` (FIR response) |
 | Job ID | 1 | returned request ID |
-| Status | 1 | 0 success, 1 invalid header, 2 bad CRC, 3 invalid count, 4 receiver timeout |
+| Status | 1 | 0 success, 1 invalid header, 2 bad CRC, 3 invalid count, 4 receiver timeout, 5 UART framing error (invalid stop bit) |
 | Count | 2 | N if status 0; otherwise 0 |
 | Payload | 3×N | signed filtered output, same sample order |
 | CRC | 2 | CRC-16, little-endian, **version through end of payload** |

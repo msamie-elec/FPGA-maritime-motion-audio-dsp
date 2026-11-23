@@ -1,147 +1,173 @@
-# FPGA Maritime Video Stabilisation & Audio Noise Reduction
+**RevI release evidence update (23 November 2026):** Archived 36 actual XADC snapshots (31.6–32.4°C), differentiated from vectorless power estimates and from the successful 15-minute reliability campaign. Repo package includes selected source-safe evidence without private absolute paths. See [XADC evidence](evidence/xadc_2026-11-23/README.md).
 
-**Current development release v1.1 (20 November 2026):** Two-stage maritime audio cleanup (FPGA-verifiable audio FIR followed by **CPU-only adaptive spectral noise suppression**); four GUI tabs: Implementation, Video Assessment, Audio Assessment, Help. See [v1.1 implementation and validation](docs/MARITIME_ADAPTIVE_AUDIO_V11.md). Existing dual-bank bitstream remains compatible. Hardware does not perform the optional adaptive stage.
+**RevH host-only documentation/UI update:** Video Assessment now includes a five-row Normal/Strong table (software-reference provenance), and Help → Testing & commands shows copyable commands maintained in [the verification guide](docs/TEST_AND_VERIFICATION_COMMANDS.md). RTL/XDC unchanged; no new bitstream is required.
 
-**Previous GUI milestone v1.0.2:** The in-app Play/Replay button now plays the selected soundtrack while the video frames advance together. The playback row has `Audio: Original / Filtered / Mute`. Before processing, Original is used; after combined processing, Filtered is selected by default. Pause and scrubbing stop the sound, and Replay restarts it. One soundtrack is selected at a time because the side-by-side comparison has two images but one speaker output. `Play MP4 with audio` still launches the saved MP4 externally. Windows playback now prefers PortAudio and falls back to MCI; other operating systems should use the external media player. This is **completed-file playback**; the FPGA is not streaming audio to the speakers. The Windows sound driver still needs a local test.
+# FPGA-Based Maritime Video Stabilisation & Audio Noise Reduction
 
-**Historical unified audiovisual milestone v1.0.** The Windows GUI now accepts a single MP4 and can run **Video + Audio** or **Video only** from the same three-tab interface. Combined mode produces `final_stabilised_filtered_audio.mp4` (stabilised picture + 3.2 kHz speech-band filtered soundtrack), a side-by-side comparison, original/filtered WAVs and independent video/audio measurements. **These were v1.0 software-only results; the short physical dual-bank demonstration was subsequently verified on 20 November 2026.** The existing 30 fps motion coefficient bank and 16 kHz speech coefficient bank are independent jobs in the same shared FIR arithmetic engine. To run hardware combined processing, build/program the new v0.9+ dual-bank bitstream first. See [unified architecture and verification](docs/UNIFIED_AV_V10.md). 
+**Digilent Arty A7-35T · Artix-7 · SystemVerilog · Vivado 2025.2.1 · 17-tap FIR · UART/CRC · Python/OpenCV · quantitative evidence**
 
+A standalone FPGA/host engineering demonstrator for *recorded* maritime video and
+audio. A single **resource-shared FPGA FIR engine** accepts buffered 24-bit
+fixed-point X/Y/roll camera-motion trajectories or 16-kHz mono PCM sample jobs
+through USB-UART. Independent signed Q1.15 coefficient banks select the camera
+motion and speech-band filters. The PC performs motion estimation, OpenCV
+frame warping, the optional adaptive spectral audio stage, playback and MP4
+rendering. **This is not a full-frame video FPGA or real-time audio system.**
 
-**Historical audio DSP milestone v0.9:** A new signed Q1.15 **16 kHz speech-band FIR coefficient bank** can be selected using UART Job ID bit 7, preserving the 30 fps motion filter. A Windows audio-processing dialog under **File → Audio noise reduction**, audio A/B WAV playback, waveform/spectrum graphs, and short MP4 exports are implemented as a development candidate. **A new Vivado bitstream and physical COM4 audio test are REQUIRED** before FPGA-backed audio processing can be called verified. Existing video GUI remains three tabs. See [audio architecture and validation](docs/AUDIO_PHASE_V09.md).
+**RevG — host usability & stabilisation diagnostics (23 November 2026):**
+Added stage-wise GUI progress, cooperative cancellation between complete UART
+packets, host FFmpeg cancellation/recovery, and a **Compare Normal / Strong**
+action on Video Assessment. The same three-second clip shows stronger
+**trajectory smoothing** with the existing two-pass mode, at a small crop
+cost; independent image-content stability is still **INCONCLUSIVE**. No RTL,
+Vivado constraints or bitstream changes. See
+[RevG processing and profile comparison](docs/GUI_REVG_PROGRESS_AND_PROFILE_COMPARISON.md).
 
-**GUI v0.8.2 development:** Source videos in `videos/`, results separated into `videos/sim/` and `videos/hrd/`, explicit Assessment provenance, long-input FIR chunking, and audio-preserving output. See [GUI v0.8.2 guide](docs/GUI_V082_LONG_VIDEO_AUDIO.md).
+**Measured XADC evidence:** 36 operator-supplied Vivado Hardware Manager
+snapshots (14 idle, 20 post-processing, 2 historical `soak_end` labels) range
+**31.6–32.4°C**, with latest 32.2°C. These are discrete post-processing/idle
+readings, **not continuous peak temperature or controlled thermal qualification**.
+The 0.071 W reported for Vivado is a vectorless *power estimate*, not a
+measured electrical-power value. See [the archived measured CSV](evidence/xadc_2026-11-23/README.md). The
+JTAG-read method is distinct from the 0.071 W vectorless power estimate.
 
-**v0.8.1 GUI CANDIDATE (20 November 2026):** Three main tabs (**Implementation**, **Assessment**, **Help**); one compact action row; maximised side-by-side video workspace; and full-height selectable analytical plots. **38/38 host tests PASS locally (including 3 playback tests); GUI desktop smoke and software-preview render PASS. Physical v0.8 GUI-to-Arty A7 test remains pending.** The FPGA RTL, coefficient ROM and Vivado bitstream workflow are unchanged.
+**GUI usability update (RevF, 23 November 2026):** One navigation strip only:
+Implementation, Video Assessment, Audio Assessment, Summary Report and Help.
+The duplicate menu-bar navigation has been removed; a small **Tools** control
+on the Implementation tab holds specialist import/lab actions and the XADC
+sampling guide. Audio cleanup is a visible selector on the Implementation tab.
+The Summary Report distinguishes **measured XADC die temperature** from
+estimated power, and remains **NOT MEASURED** until real hardware snapshots
+are imported. See [XADC capture instructions](docs/XADC_DIE_TEMPERATURE.md).
 
-**Historical v0.8/v0.9 status:** The existing CLI-controlled FIR/UART implementation passed physical Arty A7-35T verification on COM4 (17 November 2026, user-provided logs). **The new interactive GUI is a separate development candidate awaiting local hardware GUI testing.** This independent Artix-7 / SystemVerilog / Python demonstrator uses a real FPGA **17-tap motion FIR** to smooth camera-motion trajectories, while OpenCV renders the corrected image frames on the host. A software-tested dual-bank audio extension is now available in a separate v1.0 development candidate.
+**Engineering evidence update: 23 November 2026.** The owner's RevD Vivado build
+and physical FPGA verification are complete. The source-tree/report/GUI changes
+in this release have **not changed the verified RTL or XDC** and therefore do
+**not** require another synthesis, implementation or bitstream. See the evidence
+and outstanding limitations in [Engineering Release Review](docs/ENGINEERING_RELEASE_2026-11-23.md).
 
-**Three-axis foundation introduced in v0.7:** [Three-axis geometry, validation, limitations and Windows commands](docs/THREE_AXIS_V07.md). The older `integration-v0.6`, `feature/three-axis-v0.7`, and `feature/gui-three-tabs-v0.8` branches remain rollback baselines; use the v0.8.1 playback-fix branch for this candidate.
+## Verified FPGA implementation and board evidence
 
-**Start here:** [Fresh integration and Windows setup](docs/INTEGRATION_STATUS.md) · [Why videos can look unchanged](docs/VIDEO_STABILISATION_DIAGNOSTICS.md)
+| Review dimension | Result | Source/qualification |
+|---|---:|---|
+| System clock | 100 MHz | RevD post-route, 23 Nov |
+| Setup WNS / TNS | **+1.740 / 0.000 ns** | Internally constrained timing only |
+| Hold WHS / THS | **+0.046 / 0.000 ns** | Internally constrained timing only |
+| Resources | 632 LUT / 857 FF | One DSP48E1, two RAMB18, eight I/O |
+| FPGA power | **0.071 W estimated** | Vectorless routed estimate; *not* board watts |
+| Motion + audio FIR bit exactness | **PASS** | Owner's Arty A7 COM4 log, 48k audio samples in 97 jobs |
+| Reset reliability | **80/80 jobs** | Ten operator button-reset cycles |
+| Cold reliability | **40/40 jobs** | Five manually performed cycles |
+| Warm workload, successful retest | **4,408/4,408 jobs** | 15-minute soak; no elevated-temperature claim |
+| Earlier soak attempt | **4,523 pass / 141 fail** | Host COM4 permission conflict; preserved, not erased |
 
-![Maritime scene illustration](docs/figures/maritime_camera_scene.svg)
+**DRC:** No `REQP-1840` or `CFGBVS-1` in the latest report; `DPIP-1` ×2 and
+`DPOP-1` ×1 remain advisory. External UART/button/LED timing exceptions and
+vectorless power assumptions remain review items. Physical bitstream identity
+was not independently interrogated; passing clean soak is screenshot-evidenced
+until local raw logs are imported.
 
-![Conceptual stabilised scene](docs/figures/maritime_before_after_concept.svg)
-
-*Both diagrams are conceptual, not FPGA output.*
-
-
-## GUI v0.8.1 — playback usability fix
-
-Original videos are now playable immediately on upload (before filtering). After processing, both panels replay together repeatedly. Seek/pause/reset and source switching are covered by dedicated desktop tests. This is a GUI-only update with **no new bitstream needed**. See [playback tests and behaviour](docs/GUI_PLAYBACK_V081.md).
-
-## Historical GUI v0.8 — three-tab operator workspace
-
-The interface keeps primary actions in one compact row and gives the rest of **Implementation** to the original/stabilised videos. **Assessment** has a dedicated large plot: motion curves (select X/Y/ROLL), spectrum, independent image stability, or evidence log. **Help** is a readable in-app guide including Vivado programming, connection testing, and the smoothing profiles.
-
-![v0.8 implementation view — software-only screenshot](docs/screenshots/gui_v08_implementation.png)
-
-![v0.8 assessment view — software reference, not hardware evidence](docs/screenshots/gui_v08_assessment.png)
-
-[Detailed v0.8 UI design and test limits](docs/GUI_DESIGN_V08.md) · [v0.8 changelog](CHANGELOG_GUI_V08.md)
-
-> **v0.5 natural-footage release candidate:** [Real Footage Validation Guide](docs/REAL_FOOTAGE_VALIDATION.md) · [v0.5 Changelog](CHANGELOG_GUI_V05.md). GUI import now **preserves naturally recorded camera motion**, does not inject shake or supply a motion CSV, and evaluates **independent image-based stability** in addition to the FIR trajectory. This software upgrade has **26/26 host tests PASS** and desktop smoke PASS; the updated GUI has **not** been reverified against your physical FPGA, and no naturally shaky real clip has yet satisfied the real-footage release gate. The previously validated bitstream is unchanged.
-
-## Interactive laptop demonstrator — GUI v0.8 (natural camera shake and roll)
-
-The Windows desktop GUI now supports **three-axis X/Y/roll compensation** with **Normal/Strong FIR modes** and fixed image cropping. **Implementation** includes File → Open video (30 fps, 18–496 frames, up to 1280×720), COM-port selection, connection testing, FPGA stabilisation and a full-size before/after player. For original footage preparation or synthetic lab input, use the **File** menu. **Assessment** and **Help** are separate main tabs. Normal applies one FIR pass per axis; Strong applies two, which can increase both suppression and crop loss.
-
-```powershell
-python -m pip install -r .\host\requirements.txt
-powershell -ExecutionPolicy Bypass -File .\scripts\run_gui_tests.ps1
-powershell -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
-```
-
-See [Interactive GUI Demonstrator](docs/INTERACTIVE_GUI_DEMONSTRATOR.md). The physical board top has BTN0 reset; the GUI's **Reset view** does not reset the board. Existing v0.2 bitstream may be reused. For actual video motion estimation, OpenCV on the PC supplies samples to the **physical FPGA FIR**; no image pixels are sent to the FPGA. Software preview and real hardware execution are separately labelled.
-
-**GUI physical hardware testing on Windows remains pending** even though previous CLI hardware smoke/video validation on COM4 passed. Real recorded video outcome may be positive, negative or inconclusive.
-
-## Architecture
+## Architecture and verification levels
 
 ```mermaid
 flowchart LR
-  PC["PC: video + ground-truth/estimated motion"] --> USB["USB-UART binary with CRC"]
-  USB --> RX["FPGA UART RX + packet decode"]
-  RX --> MEM["512 x 24-bit input BRAM"]
-  MEM --> FIR["17-tap signed fixed-point FIR / DSP48 MAC"]
-  FIR --> MEMO["512 x 24-bit result BRAM"]
-  MEMO --> TX["FPGA packet TX + UART"]
-  TX --> PC
-  PC --> DISPLAY["OpenCV original vs stabilised video"]
+    A[Recorded video/audio] --> B[PC: motion estimation and PCM extraction]
+    B --> C[USB UART + CRC job protocol]
+    C --> D[Arty A7: BRAM + 17-tap dual-bank FIR]
+    D --> E[PC: bit-exact comparison]
+    E --> F[PC: video warp + optional adaptive audio cleanup]
+    F --> G[GUI, MP4, reference-quality metrics]
 ```
 
-The FPGA handles **24-bit motion samples, not pixels**, and video runs offline in buffered jobs. This is not a video-input, live stabilisation or tracking system. The planned fixed FIR processes one trajectory axis at a time. An independent FPGA sample comparison is required before the host may label results as **PHYSICAL FPGA - BIT-EXACT VERIFIED**.
+| Level | Location | Main checks |
+|---|---|---|
+| **1. Mathematical/software** | `verification/model/` | DC, impulse, Q-format extremes, frequency response, model output |
+| **2. RTL simulation** | `hardware/sim/` | FIR vectors, UART/CRC, reset and coefficient-bank switching |
+| **3. Integrated system** | `verification/system/` | GUI/media, physical UART FIR verification, reset/cold/soak, audiovisual quality |
 
-## Included
+**Only one Vivado project** is shipped: `hardware/build/maritime_a7.xpr`.
+Generated `.runs/.gen/.cache`, reports and bitstreams live under
+`hardware/build/` after local implementation; they are excluded from GitHub
+source. The companion `hardware/vivado/` holds reproducible Tcl.
 
-- `rtl/`: standalone Arty A7-35T board top, UART receiver/transmitter, request parser/response serializer with CRC16, synchronous sample RAM, FIR batch controller and the original signed 17-tap MAC.
-- `tb/`: complete UART-to-FIR UART regression with valid impulse, CRC rejection and post-error recovery, alongside core regression.
-- `host/`: reproducible synthetic maritime footage, bit-exact Python reference, CRC protocol, pyserial hardware client, and video comparison software.
-- `constraints/`: official Digilent Arty A7-35T pin assignments for 100 MHz clock, USB-UART, reset button and four LEDs.
-- `scripts/`: single-step Vivado board project, synthesis/bitstream script, XSim and Icarus regressions.
-- `docs/`: [master plan](docs/MASTER_PLAN.md), [UART protocol](docs/PROTOCOL.md), [board build procedure](docs/BOARD_INTEGRATION.md) and [software demo instructions](host/GETTING_STARTED.md).
+## Actual audiovisual effectiveness: important distinction
 
-## First run (software demo)
+The supplied three-second example, analysed using the local **software
+reference model** (not re-run through the board), shows high-frequency motion
+trajectory smoothing of **8.14% X, 5.99% Y, 5.02% roll**, with **92.46% image
+area retained**. Independent image-content stability was **INCONCLUSIVE** due
+to insufficient background texture; visibly improved stabilisation is **not
+established** for this example.
+
+Audio response on the same clip: the FIR-only model reduced 5–7.5 kHz band
+power by **54.94 dB**, with −0.09 dB change to the 250–3000 Hz band. The
+FIR-plus-**host** adaptive stage reduced that high band by **57.60 dB**,
+40–180 Hz by **6.66 dB**, and the speech band by **3.07 dB**. These are band
+energy differences, not a measured speech-intelligibility or isolated-SNR gain.
+
+![Software reference audio band-power changes](docs/figures/2026-11-23_audio_stage_band_changes_SOFTWARE.png)
+
+![Software reference camera-motion trajectory smoothing](docs/figures/2026-11-23_trajectory_reduction_SOFTWARE.png)
+
+See [Media Quality Review](docs/MEDIA_QUALITY_2026-11-23.md) for detailed
+provenance and how to recreate the assessment from a **physical** processed
+media output.
+
+## Reproduce and explore (Windows)
+
+In a new folder with Python dependencies installed:
 
 ```powershell
-python -m pip install -r host/requirements.txt
-python -m pytest -q tests/test_fixed_point.py tests/test_serial_protocol.py tests/test_synthetic_maritime.py
-python host/stabilize_video.py --out build/maritime_demo
+python -m pip install -r .\host\requirements.txt
+powershell -ExecutionPolicy Bypass -File .\scripts\run_engineering_assessment.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
 ```
 
-This creates `build/maritime_demo/software_preview_before_after.mp4` (labelled **SOFTWARE REFERENCE ONLY**), trajectory CSV and `metrics.json`. Do not present these metrics as FPGA hardware results.
+The GUI has Implementation, Video Assessment, Audio Assessment, Summary Report
+and Help views. **Summary Report** includes the latest routed report metrics,
+physical reset/cold/soak *history* (including previous failure), filter model,
+and stage-labelled visual/audio quality metrics. The **Quality charts** button
+shows sample-reference plots; **Refresh evidence** picks up newer local test
+logs without altering the FPGA.
 
-## Full RTL regression (Vivado XSim on Windows)
+To inspect the existing project in Vivado, open:
+
+`hardware/build/maritime_a7.xpr`
+
+Or regenerate the same source-backed project:
 
 ```powershell
-$env:PATH = "C:\AMDDesignTools\2025.2.1\Vivado\bin;$env:PATH"
-powershell -ExecutionPolicy Bypass -File .\scripts\run_maritime_xsim.ps1
+powershell -ExecutionPolicy Bypass -File .\OPEN_VIVADO_PROJECT_WINDOWS.ps1 -Recreate
 ```
 
-Look for `MARITIME_UART_FIR_REGRESSION_PASS`. This tests actual serial bits and FIR processing in the RTL, not just Python.
+Run XSim on Windows via scripts under `hardware/sim/scripts/`. A fresh full
+Vivado run is **optional for this host/report update**, but required if you
+change FPGA RTL, timing constraints, device or coefficients.
 
-## One-command local validation and Vivado board build
-
-Close Vivado GUI, then run:
+To import original physical results into a fresh local extract:
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File .\scripts\run_all_local.ps1
+powershell -ExecutionPolicy Bypass -File .\scripts\import_local_validation_evidence.ps1 -PreviousProjectRoot 'C:\...\FPGA_Maritime_AV_7'
 ```
 
-This runs Python tests, complete UART/FIR XSim regression, a software-only maritime preview, then synthesis/implementation and bitstream. The local script **does not claim physical hardware success**. Run `python host/hardware_smoke.py --port COM4` after flashing the bitstream (COM4 was the working port in the observed test; verify it when reconnecting).
+This preserves the first failed soak and recognises the later passing run by
+its own evidence folder. To remeasure processing quality on your *own* audio/
+video output, use `scripts/run_media_quality.ps1 -RunDir <completed_run_folder>`.
 
-## Vivado board build and programming
+For project setup and board commands, see [START_HERE_WINDOWS.txt](START_HERE_WINDOWS.txt).
 
-**Close the Vivado GUI**, then run:
+## Repository hygiene
 
-```powershell
-& "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source scripts/build_maritime_bitstream.tcl
-```
+Source hierarchy: `hardware/`, `host/`, `verification/`, `scripts/`, `docs/`,
+`evidence/`, `videos/`, `media_sources/`. Raw local report archives, serial
+transcripts, FPGA bitstreams, and redistribution-uncertain video clips are
+**not part of the GitHub source staging set**. The private/local ZIP can carry
+a separate evidence archive.
 
-Examine the DRC, resource and routed timing reports before programming. Open `build/vivado_maritime_a7/maritime_a7.xpr` to inspect RTL hierarchy and synthesized schematic. See [board integration guide](docs/BOARD_INTEGRATION.md) for actual COM-port testing. A user-provided local Vivado 2025.2.1 run has shown bitstream generation and physical UART/FIR success. The updated v0.8 GUI has not yet been verified with hardware.
+GitHub staging instructions and publication safeguards:
+[GitHub Release Checklist](docs/GITHUB_RELEASE_CHECKLIST.md). The existing
+repository and history should remain intact; changes go to a dedicated branch,
+not directly to `main`.
 
-```powershell
-python host/stabilize_video.py --out build/maritime_demo --port COM4
-```
-
-Replace `COM4` if Windows assigns your Arty UART a different COM port. The host aborts if any FPGA returned sample disagrees with the bit-exact model. **The physical CLI hardware test has passed on COM4; future GUI runs still require their own verification.**
-
-## Next releases
-
-- `v1.0`: hardware-verified maritime camera-motion smoothing, timing and resource reports, before/after video.
-- `v1.1`: independent buffered 16 kHz audio FIR demonstration.
-- `v1.2`: synchronized audio/video demonstration.
-
-The project is intended as a **self-contained reproducible engineering portfolio** with source, benchmarks and provenance. Licensed under the MIT License; independent third-party dependencies retain their own terms.
-
-## Natural maritime footage + Help (GUI v0.5)
-
-**The primary test now requires natural camera movement recorded at sea.** Open **Import natural footage…** and select the original video; the app takes up to five seconds, standardises to 30 fps, and preserves the source's real motion. No synthetic shake or hand-entered motion CSV is added in this mode.
-
-The GUI's **Help / Steps** menu explains board programming, COM-port detection, all controls, actual OpenCV-to-FPGA processing and validation. Read the [real-footage engineering validation plan](docs/REAL_FOOTAGE_VALIDATION.md) before making performance claims. The GUI reports both FIR trajectory smoothing and a **separate, quality-gated image-content movement result**. A clip that cannot be measured may show `INCONCLUSIVE` rather than a fabricated improvement.
-
-The tool does not bundle a third-party recording or claim that a natural shake test has passed. Suggested independent sources include [ViCoS MODD2](https://data.vicos.si/borja/viamaro/index.html) and [Wikimedia OOI vessel-mounted videos](https://commons.wikimedia.org/wiki/Category:Ocean_Observatories_Initiative_videos), subject to source-specific permissions and actual visible camera shake.
-
-### Post-processing GUI sound recovery (v1.0.4 candidate)
-
-On Windows, the embedded video player's audio backend now prefers PortAudio (`sounddevice`) for original/filtered WAV playback after processing and falls back to Windows MCI. The selected track, backend and errors appear in the status/log. See [playback recovery and Windows checks](docs/GUI_AUDIO_PLAYBACK_V104.md). This is GUI-only; it does not change FPGA arithmetic or require a new bitstream.
+**Scope disclaimer:** prototype DSP verification, not product certification,
+real-time system performance, measured board power, or verified speech quality.

@@ -47,7 +47,7 @@ try {
   } else {
     Write-Host 'Only dual-bank numeric smoke verified. Full video/audio hardware demonstration SKIPPED.'
   }
-  $reports = Join-Path $root 'build\vivado_maritime_a7\reports'
+  $reports = Join-Path $root 'hardware\build\reports'
   if (Test-Path $reports) {
     New-Item -ItemType Directory -Force -Path (Join-Path $evidence 'vivado_reports') | Out-Null
     Copy-Item (Join-Path $reports '*.rpt') -Destination (Join-Path $evidence 'vivado_reports') -Force

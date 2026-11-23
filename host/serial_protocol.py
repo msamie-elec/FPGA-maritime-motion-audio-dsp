@@ -10,7 +10,7 @@ VERSION = 1
 CMD_FILTER = 1
 CMD_FILTER_RESPONSE = 0x81
 MAX_SAMPLES = 512
-OK, BAD_HEADER, BAD_CRC, BAD_COUNT, TIMEOUT = range(5)
+OK, BAD_HEADER, BAD_CRC, BAD_COUNT, TIMEOUT, FRAMING_ERROR = range(6)
 
 
 def crc16(data: bytes) -> int:
@@ -56,7 +56,7 @@ def decode_response(frame: bytes, job_id: int, expected_count: int) -> list[int]
     if crc16(frame[2:-2]) != int.from_bytes(frame[-2:], 'little'):
         raise ValueError('invalid response CRC')
     if status:
-        label={1:'BAD_HEADER',2:'BAD_CRC',3:'BAD_COUNT',4:'TIMEOUT'}.get(status, f'UNKNOWN_{status}')
+        label={1:'BAD_HEADER',2:'BAD_CRC',3:'BAD_COUNT',4:'TIMEOUT',5:'FRAMING_ERROR'}.get(status, f'UNKNOWN_{status}')
         raise RuntimeError(f'FPGA rejected job: {label}')
     if count != expected_count:
         raise ValueError('wrong result count')

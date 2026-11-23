@@ -23,45 +23,50 @@ from audio_dsp import (FS, analyze, filter_pcm, plot_audio, read_audio,
 from gui_pipeline import ProcessingResult, run_pipeline
 from maritime_audio_enhancement import suppress_maritime_noise
 from motion_estimation import inspect_video
+from processing_control import checkpoint, progress as notify, run_process, ProcessingCancelled
 
 PROCESSING_MODES = ('Video + Audio', 'Video only')
 AUDIO_CLEANUP_MODES = ('Maritime adaptive', 'FIR only')
 
 
-def _run_ffmpeg(args: list[str], output: Path, *, timeout: int = 240) -> None:
-    proc = subprocess.run([_ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y',
-                           *args, str(output)], capture_output=True, text=True,
-                          timeout=timeout)
+def _run_ffmpeg(args: list[str], output: Path, *, timeout: int = 240, cancel_event=None) -> None:
+    try:
+        proc = run_process([_ffmpeg(), '-hide_banner', '-loglevel', 'error', '-y',
+                            *args, str(output)], cancel_event=cancel_event,
+                           text=True, timeout=timeout)
+    except (ProcessingCancelled,subprocess.TimeoutExpired):
+        output.unlink(missing_ok=True)
+        raise
     if proc.returncode or not output.is_file() or output.stat().st_size == 0:
         output.unlink(missing_ok=True)
         raise RuntimeError('FFmpeg final media export failed: ' + proc.stderr[-700:])
 
 
-def replace_soundtrack(mp4: Path, wav: Path) -> None:
+def replace_soundtrack(mp4: Path, wav: Path, *, cancel_event=None) -> None:
     """Atomically replace audio without touching encoded video frames."""
     mp4, wav = Path(mp4), Path(wav)
     temporary = mp4.with_name(mp4.stem + '.new_audio.mp4')
     try:
         _run_ffmpeg(['-i', str(mp4), '-i', str(wav), '-map', '0:v:0',
                      '-map', '1:a:0', '-c:v', 'copy', '-c:a', 'aac',
-                     '-b:a', '160k', '-shortest', '-movflags', '+faststart'], temporary)
+                     '-b:a', '160k', '-shortest', '-movflags', '+faststart'], temporary,cancel_event=cancel_event)
         os.replace(temporary, mp4)
     finally:
         temporary.unlink(missing_ok=True)
 
 
-def write_finished_video(comparison: Path, final: Path) -> None:
+def write_finished_video(comparison: Path, final: Path, *, cancel_event=None) -> None:
     """Export only right-hand stabilised half with its cleaned AAC audio."""
     _run_ffmpeg(['-i', str(comparison), '-map', '0:v:0', '-map', '0:a:0',
                  '-vf', 'crop=iw/2:ih:iw/2:0', '-c:v', 'libx264', '-preset',
                  'veryfast', '-crf', '22', '-c:a', 'copy', '-movflags', '+faststart'],
-                final, timeout=300)
+                final, timeout=300,cancel_event=cancel_event)
 
 
 def run_unified_pipeline(video: Path, trajectory: Path | None, output_dir: Path,
                          port: str | None, profile: str = 'Normal',
                          processing: str = 'Video + Audio',
-                         audio_cleanup: str = 'Maritime adaptive') -> ProcessingResult:
+                         audio_cleanup: str = 'Maritime adaptive', *, cancel_event=None, progress=None) -> ProcessingResult:
     """Process both channels, requiring independently verifiable FPGA outputs.
 
     'Video only' retains the previous video stabilisation behaviour and original
@@ -79,7 +84,8 @@ def run_unified_pipeline(video: Path, trajectory: Path | None, output_dir: Path,
         raise ValueError('This video has no audio track. Choose Video only, or load a video with sound.')
     dest = Path(output_dir)
     started = time.perf_counter()
-    result = run_pipeline(source, trajectory, dest, port, profile=profile)
+    result = run_pipeline(source, trajectory, dest, port, profile=profile, cancel_event=cancel_event, progress=progress)
+    checkpoint(cancel_event)
     metrics = result.metrics
     metrics['combined_processing'] = processing
     metrics['audio_filtering'] = {'status': 'NOT REQUESTED', 'hardware_verified': False}
@@ -90,7 +96,11 @@ def run_unified_pipeline(video: Path, trajectory: Path | None, output_dir: Path,
     # The processed source has the same frame clock as the original, so the
     # first sample is t=0. Encode only the decoded frames' time interval.
     seconds = info.frames / info.fps
-    decoded_audio = read_audio(source, start_s=0.0, duration_s=seconds)
+    notify(progress,'audio_decode',0,1)
+    checkpoint(cancel_event)
+    decoded_audio = read_audio(source, start_s=0.0, duration_s=seconds, cancel_event=cancel_event)
+    checkpoint(cancel_event)
+    notify(progress,'audio_decode',1,1)
     # AAC encoder priming / end-of-stream packet boundaries differ between
     # FFmpeg builds. Some Windows builds decode 14,976 rather than 16,000
     # samples for an otherwise one-second AAC fixture (one 1,024-sample
@@ -103,11 +113,15 @@ def run_unified_pipeline(video: Path, trajectory: Path | None, output_dir: Path,
         raw = np.pad(decoded_audio, (0, missing_samples), mode='constant')
     else:
         raw = decoded_audio[:expected_samples].copy()
-    fir_cleaned, jobs = filter_pcm(raw, port)
+    fir_cleaned, jobs = filter_pcm(raw, port, cancel_event=cancel_event, progress=progress)
+    checkpoint(cancel_event)
+    notify(progress,'audio_enhancement',0,1)
     if audio_cleanup == 'Maritime adaptive':
         cleaned, host_enhancement = suppress_maritime_noise(fir_cleaned)
     else:
         cleaned, host_enhancement = fir_cleaned.copy(), None
+    checkpoint(cancel_event)
+    notify(progress,'audio_enhancement',1,1)
     if len(cleaned) != len(raw):
         raise AssertionError('Audio DSP output length differs from input')
     write_pcm_wav(dest/'audio_original.wav', raw)
@@ -120,9 +134,15 @@ def run_unified_pipeline(video: Path, trajectory: Path | None, output_dir: Path,
 
     # Side-by-side comparison: ONE cleaned soundtrack (a video cannot play two
     # separate soundtracks simultaneously). WAV A/B supplies audible contrast.
-    replace_soundtrack(result.side_by_side, cleaned_wav)
+    checkpoint(cancel_event)
+    notify(progress,'media_export',0,2)
+    replace_soundtrack(result.side_by_side, cleaned_wav,cancel_event=cancel_event)
+    checkpoint(cancel_event)
+    notify(progress,'media_export',1,2)
     final = dest / 'final_stabilised_filtered_audio.mp4'
-    write_finished_video(result.side_by_side, final)
+    write_finished_video(result.side_by_side, final,cancel_event=cancel_event)
+    checkpoint(cancel_event)
+    notify(progress,'media_export',2,2)
     audio_measure = analyze(raw, cleaned)
     fir_measure = analyze(raw, fir_cleaned)
     audio_verified = port is not None and jobs > 0

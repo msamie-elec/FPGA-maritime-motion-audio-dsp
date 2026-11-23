@@ -1,43 +1,76 @@
-FPGA MARITIME CAMERA STABILISATION — GUI v0.8 (20 November 2026)
+FPGA MARITIME AV — EVIDENCE & MEDIA QUALITY RELEASE (23 NOVEMBER 2026)
+==================================================================
 
-THREE MAIN TABS: Implementation | Assessment | Help
+SOURCE ONLY UPDATE: Hardware RTL, coefficients and constraints are UNCHANGED.
+No additional Vivado implementation or board programming is required unless
+changing the FPGA design or independently rebuilding the bitstream.
 
-This is a GUI-only revision on top of the v0.7 three-axis code.
-RTL, XDC, coefficients and bitstream scripts have not changed.
-Do not merge the new version into an older _3 or v0.7 folder.
+ONE native project: hardware\build\maritime_a7.xpr
 
-1. Download branch feature/gui-three-tabs-v0.8 from GitHub.
-2. Extract into a NEW short folder, for example C:\FPGA\maritime_v08.
-3. Open PowerShell inside that folder and run:
+1) Install Python tools:
+     python -m pip install -r .\host\requirements.txt
 
-    python -m pip install -r .\host\requirements.txt
-    powershell -ExecutionPolicy Bypass -File .\scripts\run_gui_tests.ps1
-    powershell -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
+2) Optional source-level mathematics and model checks:
+     powershell -ExecutionPolicy Bypass -File .\scripts\run_engineering_assessment.ps1
 
-4. If the board needs a bitstream, close Vivado GUI and rebuild:
+3) Open the completed GUI + Summary Report:
+     powershell -ExecutionPolicy Bypass -File .\scripts\launch_maritime_gui.ps1
+   Summary Report -> Refresh evidence; Quality charts -> three-second
+   SOFTWARE-REFERENCE metrics, not extra physical measurements.
 
-    & "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source scripts/build_maritime_bitstream.tcl
+4) Import the original 23 Nov physical reliability CSV/JSON from the existing
+   FPGA_Maritime_AV_7 directory (IMPORTANT for machine-readable evidence):
+     powershell -ExecutionPolicy Bypass -File .\scripts\import_local_validation_evidence.ps1 -PreviousProjectRoot 'C:\...\FPGA_Maritime_AV_7'
+   Do not delete failed first soak; both attempts remain listed.
 
-   Program the Arty A7 in Vivado Hardware Manager using:
+5) Measure an already-completed software or physical audiovisual run:
+     powershell -ExecutionPolicy Bypass -File .\scripts\run_media_quality.ps1 -RunDir .\videos\hrd\<real_run_dir>
+   The run directory must contain metrics.json and optionally audio_original.wav,
+   audio_fir_only.wav and audio_filtered.wav. Physical status comes only from
+   existing verification metadata. Missing image texture => INCONCLUSIVE.
 
-    build\vivado_maritime_a7\maritime_a7.runs\impl_1\arty_a7_maritime_top.bit
+6) Inspect HDL and constraints / run XSim if needed:
+     hardware\build\maritime_a7.xpr
+   or for project recreation:
+     powershell -ExecutionPolicy Bypass -File .\OPEN_VIVADO_PROJECT_WINDOWS.ps1 -Recreate
 
-5. In the Implementation tab:
-   - Open video (30 fps compatible clip).
-   - Detect and select the Arty A7 COM port (previously COM4).
-   - Verify FPGA (3 bit-exact reference jobs).
-   - Start with Normal smoothing and click Stabilise using FPGA.
-   - Play the synchronized original and corrected videos in the enlarged view.
+7) Do NOT rebuild the FPGA solely to view or update the final engineering
+   report. If you really change FPGA logic or clock/pin constraints:
+     powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\final_rebuild_and_reports.ps1
 
-6. In the Assessment tab: motion curves, spectrum, image stability, or logs
-   each have a large dedicated plot area.
+8) GitHub staging from a fresh cloned copy, media-safe by default:
+     powershell -ExecutionPolicy Bypass -File .\scripts\prepare_github_release.ps1
+   Review its staged diff; optionally rerun with -Push (needs GitHub access).
 
-7. In the Help tab: programming steps and every control explained.
-   Normal = one 17-tap FIR pass per X/Y/roll axis, Strong = two passes.
-   Strong is not guaranteed to improve every video.
+Current evidence: WNS +1.740 ns / WHS +0.046 ns / 632 LUT / 857 FF /
+0.071 W VECTORLESS ESTIMATE. Physical reset 80/80, cold 40/40, clean soak
+4408/4408; prior failed soak 4523/4664 due COM4 access-denied is RETAINED.
 
-Special test actions (source recording preparation, synthetic video, CSV)
-are in the File menu. They are not required for an ordinary video run.
+See docs/ENGINEERING_RELEASE_2026-11-23.md and
+    docs/MEDIA_QUALITY_2026-11-23.md for limitations and provenance.
 
-Local Python regression 35/35 PASS and Linux desktop tests PASS.
-This GUI release has not yet been independently revalidated on Windows COM4.
+GUI navigation (RevG): the five large tabs are the only navigation tabs.
+Advanced importing and XADC instructions: Implementation > Tools.
+Audio cleanup: Implementation > Audio cleanup selector.
+XADC snapshots were measured (31.6–32.0 C); see docs/XADC_DIE_TEMPERATURE.md
+
+REV G GUI IMPROVEMENTS (HOST ONLY)
+---------------------------------
+On Implementation, a processing-progress strip shows stage / samples / elapsed
+wall time. Cancel Processing requests safe cancellation between FPGA UART
+packets; it NEVER resets the FPGA or labels an incomplete job as PASS.
+
+On Video Assessment choose "Compare Normal / Strong" for an independent
+SOFTWARE-REFERENCE assessment. Strong improves motion trajectory smoothing on
+the supplied three-second test clip but independent scene stability is not
+established. Read docs/GUI_REVG_PROGRESS_AND_PROFILE_COMPARISON.md.
+
+XADC readings from this owner's 23-November CSV are included in the LOCAL
+engineering bundle only. Open Summary Report > Refresh evidence to view them;
+the readings are snapshots, not a measured under-load temperature trace.
+
+REV H — TEST COMMAND INDEX AND PROFILE TABLE
+---------------------------------------------
+Help > Testing & commands shows verified command syntax for software model, XSim, Vivado, physical FPGA, reset, cold, soak, XADC, quality and GitHub. Full guide: docs/TEST_AND_VERIFICATION_COMMANDS.md.
+Video Assessment > Profile comparison shows all four metrics with 2-decimal precision, input provenance and independent image-registration status. It initially shows an archived software reference, replaced after Compare Normal / Strong runs.
+No RTL/XDC changes; the prior RevD verified dual-bank bitstream remains suitable.

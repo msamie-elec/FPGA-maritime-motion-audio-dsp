@@ -80,20 +80,20 @@ These are **software frequency-response calculations, not synthesis, physical FP
 - signed extremes and seeded pseudorandom values;
 - a composite synthetic camera-motion trajectory (`shake`).
 
-The `.mem` files are six hexadecimal digits per 24-bit sample (two's complement) for `$readmemh`. `tests/vectors/vector_manifest.json` holds deterministic counts and SHA-256 values. The golden model is separately cross-checked against direct-form convolution and edge/saturation handling.
+The `.mem` files are six hexadecimal digits per 24-bit sample (two's complement) for `$readmemh`. `hardware/sim/vectors/vector_manifest.json` holds deterministic counts and SHA-256 values. The golden model is separately cross-checked against direct-form convolution and edge/saturation handling.
 
 ### Required local verification (not performed yet)
 
 **Option A: Icarus Verilog:**
 
 ```bash
-bash scripts/run_fir_sim.sh
+bash hardware/sim/scripts/run_fir_sim.sh
 ```
 
 **Option B: Vivado XSim / Windows PowerShell:**
 
 ```powershell
-powershell -ExecutionPolicy Bypass -File scripts/run_fir_xsim.ps1
+powershell -ExecutionPolicy Bypass -File hardware/sim/scripts/run_fir_xsim.ps1
 ```
 
 The testbench reports `FIR_RTL_REGRESSION_PASS` **only on a successful RTL run**, exercising 8 cases plus a mid-operation reset-cancellation test. Record the command, tool version and actual output transcript; **do not mark M1 passed until the RTL simulation is executed and its results inspected.**
@@ -101,7 +101,7 @@ The testbench reports `FIR_RTL_REGRESSION_PASS` **only on a successful RTL run**
 ### View M1 source hierarchy in Vivado
 
 ```powershell
-vivado -mode batch -source scripts/create_fir_m1_vivado.tcl
+vivado -mode batch -source hardware/vivado/create_fir_m1_vivado.tcl
 ```
 
 Open `build/vivado_fir_m1/maritime_fir_m1.xpr` and select **Open Elaborated Design**, **Schematic**, and **Sources → Hierarchy**. This is an **RTL inspection project, not the final board top**; do not generate a board bitstream at this stage.

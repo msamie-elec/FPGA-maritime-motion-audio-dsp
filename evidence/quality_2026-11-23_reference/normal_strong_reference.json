@@ -1,0 +1,35 @@
+{
+  "evidence_type": "SOFTWARE_REFERENCE_PROFILE_COMPARISON_NOT_FPGA",
+  "input_file": "03_Unified_Quick_Test_3s.mp4",
+  "input_sha256": "678a85230f2f12ca2be2b4ec0b549f827594688afb307b8629abec758a48b008",
+  "status": "STRONG_NUMERICALLY_SMOOTHER",
+  "independent_image_proxy_favors_strong": false,
+  "profiles": {
+    "normal": {
+      "x_pct": 8.13822004051068,
+      "y_pct": 5.994982410860528,
+      "roll_pct": 5.016602760268918,
+      "crop_area_retained_pct": 92.46,
+      "image_registration_status": "INCONCLUSIVE",
+      "image_registration_reduction_pct": null,
+      "motion_estimation_warnings": [
+        "FEATURE LOSS: >5% of steps had no usable pose update"
+      ],
+      "report_directory": "normal"
+    },
+    "strong": {
+      "x_pct": 12.968917045432448,
+      "y_pct": 9.57212016206791,
+      "roll_pct": 8.801007691029728,
+      "crop_area_retained_pct": 91.23,
+      "image_registration_status": "INCONCLUSIVE",
+      "image_registration_reduction_pct": null,
+      "motion_estimation_warnings": [
+        "FEATURE LOSS: >5% of steps had no usable pose update"
+      ],
+      "report_directory": "strong"
+    }
+  },
+  "interpretation": "Strong reduces measured trajectory jitter more, at the stated crop cost. Independent image assessment must be considered separately.",
+  "limitations": "Camera pose inferred from optical flow; moving water or vessels may dominate. No FPGA computations are used. Compare videos and examine crop before choosing a profile."
+}

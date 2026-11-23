@@ -24,6 +24,7 @@ from matplotlib.figure import Figure
 from matplotlib.backends.backend_agg import FigureCanvasAgg
 
 from audio_preservation import _ffmpeg
+from processing_control import checkpoint, progress as notify, run_process
 from design_audio_coefficients import design, FS
 from fixed_point_golden import FirReference, centered_smooth
 
@@ -33,7 +34,7 @@ BLOCK = MAX_JOB - 16
 MAX_SECONDS = 50.5  # accommodates the full supported 1500-frame / 30-fps video
 
 
-def read_audio(source: Path, start_s: float = 0.0, duration_s: float = 4.0) -> np.ndarray:
+def read_audio(source: Path, start_s: float = 0.0, duration_s: float = 4.0, *, cancel_event=None) -> np.ndarray:
     """Extract exact 16 kHz mono signed PCM16 via ffmpeg, with input untouched."""
     source = Path(source)
     if not source.is_file():
@@ -43,7 +44,7 @@ def read_audio(source: Path, start_s: float = 0.0, duration_s: float = 4.0) -> n
     args = [_ffmpeg(), '-hide_banner', '-loglevel', 'error', '-ss', f'{start_s:.6f}',
             '-i', str(source), '-map', '0:a:0', '-vn', '-ac', '1', '-ar', str(FS),
             '-t', f'{duration_s:.6f}', '-f', 's16le', '-acodec', 'pcm_s16le', 'pipe:1']
-    r = subprocess.run(args, capture_output=True, timeout=180)
+    r = run_process(args, cancel_event=cancel_event, timeout=180)
     if r.returncode != 0:
         raise RuntimeError('Cannot decode source audio (or source has no audio): ' +
                            r.stderr.decode('utf-8', 'replace')[-450:])
@@ -71,20 +72,24 @@ def reference_filter_pcm(samples: np.ndarray) -> np.ndarray:
     return np.clip(np.asarray(f, dtype=np.int64) >> 8, -32768, 32767).astype(np.int16)
 
 
-def filter_pcm(samples: np.ndarray, port: str | None = None) -> tuple[np.ndarray, int]:
+def filter_pcm(samples: np.ndarray, port: str | None = None, *, cancel_event=None, progress=None) -> tuple[np.ndarray, int]:
+    checkpoint(cancel_event)
     raw = np.asarray(samples, dtype=np.int16)
     if len(raw) == 0:
         raise ValueError('Empty audio segment')
     original_q = [int(x) << 8 for x in raw]
     expected_q = centered_smooth(original_q, design())
     if port is None:
+        checkpoint(cancel_event)
         filtered_q = expected_q
         jobs = 0
+        notify(progress,"audio_fir",len(raw),len(raw))
     else:
         # Keep all hardware samples backed by an authentic serial response.
         from fpga_serial_client import run_batch
         filtered_q, jobs = [], 0
         for start in range(0, len(original_q), BLOCK):
+            checkpoint(cancel_event)  # never abort a packet in flight
             fragment = original_q[start:start+BLOCK]
             left = [original_q[max(0, i)] for i in range(start-8, start)]
             right = [original_q[min(len(original_q)-1, i)]
@@ -99,6 +104,8 @@ def filter_pcm(samples: np.ndarray, port: str | None = None) -> tuple[np.ndarray
                 raise AssertionError('AUDIO FPGA mismatch at sample %d — no hardware verification' % start)
             jobs += 1
             filtered_q.extend(actual)
+            notify(progress,"audio_fir",len(filtered_q),len(original_q))
+    checkpoint(cancel_event)
     result = np.clip(np.asarray(filtered_q, dtype=np.int64) >> 8, -32768, 32767).astype(np.int16)
     return result, jobs
 

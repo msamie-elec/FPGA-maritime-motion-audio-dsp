@@ -39,10 +39,10 @@ Clock E3, UART_RX A9, UART_TX D10, reset button 0 D9, user LEDs H5/J5/T9/T10. Se
 
 ## Build and hardware checks
 
-1. In a Vivado-enabled PowerShell, run `powershell -ExecutionPolicy Bypass -File scripts/run_maritime_xsim.ps1` to simulate serial request/response and FIR processing (hardware independent).
-2. With Vivado GUI **closed**, run `& "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source scripts/build_maritime_bitstream.tcl` from repo root.
-3. Inspect `build/vivado_maritime_a7/reports/` for utilization, routing, DRC and timing. **Do not use a bitstream until implementation passes, meets 100 MHz timing, and critical DRC warnings have been audited.**
-4. Program board in Vivado Hardware Manager with `build/vivado_maritime_a7/maritime_a7.runs/impl_1/arty_a7_maritime_top.bit`.
+1. In a Vivado-enabled PowerShell, run `powershell -ExecutionPolicy Bypass -File hardware/sim/scripts/run_maritime_xsim.ps1` to simulate serial request/response and FIR processing (hardware independent).
+2. With Vivado GUI **closed**, run `& "C:\AMDDesignTools\2025.2.1\Vivado\bin\vivado.bat" -mode batch -source hardware/vivado/build_maritime_bitstream.tcl` from repo root.
+3. Inspect `hardware/build/reports/` for utilization, routing, DRC and timing. **Do not use a bitstream until implementation passes, meets 100 MHz timing, and critical DRC warnings have been audited.**
+4. Program board in Vivado Hardware Manager with `hardware/build/maritime_a7.runs/impl_1/arty_a7_maritime_top.bit`.
 5. Discover the Arty USB-UART COM port in Windows Device Manager. Observe ready LED0; send a small known impulse request and verify the signed results against Python.
 6. Run the short synthetic video through the **physical** board using `python host/stabilize_video.py --port COMx`. Output must say `PHYSICAL FPGA - BIT-EXACT VERIFIED` only after the host confirms exact match.
 7. Save actual logs and images in `evidence/hardware/` and record board revision, Vivado version, Git SHA and measured timing/utilization. The camera-motion benchmark target is >=30% high-frequency RMS reduction on both axes.

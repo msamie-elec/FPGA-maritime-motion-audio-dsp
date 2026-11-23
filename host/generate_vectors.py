@@ -11,7 +11,7 @@ from pathlib import Path
 from fixed_point_golden import FirReference, SAMPLE_MAX, SAMPLE_MIN, centered_smooth, load_coefficients, to_hex24
 
 ROOT = Path(__file__).resolve().parents[1]
-DEST = ROOT/'tests'/'vectors'
+DEST = ROOT/'hardware'/'sim'/'vectors'
 RANDOM_SEED = 20261117
 
 
@@ -35,7 +35,7 @@ def cases() -> dict[str, list[int]]:
 
 def main() -> None:
     DEST.mkdir(parents=True,exist_ok=True)
-    metadata = {'seed':RANDOM_SEED,'format':'signed24_Q16.8','coefficient_sha256':None,'cases':{},'reference_only':True}
+    metadata = {'seed':RANDOM_SEED,'format':'signed24_Q16.8','coefficient_sha256':None,'cases':{},'audio_cases':{},'reference_only':True}
     coeffs=load_coefficients()
     ref = FirReference(coeffs)
     for name, samples in cases().items():
@@ -48,7 +48,30 @@ def main() -> None:
         metadata['cases'][name]={'samples':len(samples),'reference_min':min(expected),'reference_max':max(expected),
             'input_sha256':hashlib.sha256(in_file.read_bytes()).hexdigest(),
             'expected_sha256':hashlib.sha256(out_file.read_bytes()).hexdigest()}
-    coeff_path=ROOT/'rtl'/'fir_coefficients.txt'
+    # Independent audio coefficient bank: all expected samples are produced
+    # by the Python fixed-point reference and checked by the RTL testbench.
+    from design_audio_coefficients import design
+    audio_rng = random.Random(RANDOM_SEED + 7)
+    audio_cases = {
+        'audio_impulse': [32768]+[0]*95,
+        'audio_dc': [-32768]*96,
+        'audio_random': [audio_rng.randint(SAMPLE_MIN,SAMPLE_MAX) for _ in range(256)],
+        'audio_extremes': ([SAMPLE_MAX,SAMPLE_MIN,0,1,-1]*26)[:128],
+    }
+    audio_ref = FirReference(design())
+    for name, samples in audio_cases.items():
+        audio_ref.reset()
+        expected = audio_ref.process(samples)
+        in_file=DEST/f'{name}_input.mem'
+        out_file=DEST/f'{name}_expected.mem'
+        in_file.write_text(''.join(to_hex24(x)+'\n' for x in samples))
+        out_file.write_text(''.join(to_hex24(y)+'\n' for y in expected))
+        metadata['audio_cases'][name] = {
+            'samples':len(samples),'bank':'audio',
+            'input_sha256':hashlib.sha256(in_file.read_bytes()).hexdigest(),
+            'expected_sha256':hashlib.sha256(out_file.read_bytes()).hexdigest(),
+        }
+    coeff_path=ROOT/'hardware'/'rtl'/'fir_coefficients.txt' 
     metadata['coefficient_sha256']=hashlib.sha256(coeff_path.read_bytes()).hexdigest()
     (DEST/'vector_manifest.json').write_bytes((json.dumps(metadata,indent=2,sort_keys=True)+'\n').encode('utf-8'))
     # Test the planned centered-video alignment convention with a deterministic trajectory.

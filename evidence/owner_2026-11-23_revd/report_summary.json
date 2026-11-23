@@ -1,0 +1,38 @@
+{
+  "scope": "post-route internal timing and static/vectorless estimation",
+  "timing": {
+    "setup_wns_ns": 1.74,
+    "setup_tns_ns": 0.0,
+    "hold_whs_ns": 0.046,
+    "hold_ths_ns": 0.0
+  },
+  "internal_timing_met": true,
+  "resource_counts": {
+    "luts": 632,
+    "registers": 857,
+    "dsp48e1": 1,
+    "bram18": 2,
+    "bonded_iobs": 8
+  },
+  "estimated_power_w": 0.071,
+  "power_evidence": "vectorless Vivado estimate; NOT measured board watts",
+  "drc_report_present": true,
+  "drc_rules": [
+    {
+      "rule": "DPIP-1",
+      "severity": "Warning",
+      "instances": 2
+    },
+    {
+      "rule": "DPOP-1",
+      "severity": "Warning",
+      "instances": 1
+    }
+  ],
+  "unconstrained_io_mentioned": true,
+  "review_required": [
+    "Check external UART/reset constraints and DRC warnings even if internal timing is met.",
+    "Power is a scenario-dependent estimate, not measured supply current.",
+    "Cold/hot physical reliability requires separate board observations."
+  ]
+}

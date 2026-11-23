@@ -12,6 +12,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 from motion_estimation import inspect_video
+from processing_control import checkpoint, progress as notify
 
 
 def _points(gray: np.ndarray, wide: bool = False):
@@ -35,7 +36,8 @@ def _rigid_from_affine(affine):
     return step, np.degrees(theta)
 
 
-def estimate_three_axis(video: Path, trajectory: Path, diagnostics: Path | None = None) -> dict:
+def estimate_three_axis(video: Path, trajectory: Path, diagnostics: Path | None = None, *,
+                        cancel_event=None, progress=None) -> dict:
     """Output frame-centred absolute X/Y/roll trajectories as Q16.8 samples.
 
     The cumulative image-to-image transform maps coordinates from frame zero
@@ -54,6 +56,9 @@ def estimate_three_axis(video: Path, trajectory: Path, diagnostics: Path | None 
     accepted=0;fallback=0;held=0
     try:
         for frame_n in range(1,info.frames):
+            checkpoint(cancel_event)
+            if frame_n == 1 or frame_n % 8 == 0:
+                notify(progress, "motion_estimation", frame_n, info.frames)
             ok,frame=cap.read()
             if not ok:raise ValueError(f'Decode stopped at frame {frame_n}')
             gray=cv2.cvtColor(frame,cv2.COLOR_BGR2GRAY)
@@ -100,6 +105,8 @@ def estimate_three_axis(video: Path, trajectory: Path, diagnostics: Path | None 
             logs.append(rec)
             prev=gray
     finally:cap.release()
+    checkpoint(cancel_event)
+    notify(progress, "motion_estimation", info.frames, info.frames)
     if len(trajectory_float)!=info.frames:raise AssertionError('Missing frames')
     trajectory=Path(trajectory);trajectory.parent.mkdir(parents=True,exist_ok=True)
     with trajectory.open('w',newline='',encoding='utf-8') as f:

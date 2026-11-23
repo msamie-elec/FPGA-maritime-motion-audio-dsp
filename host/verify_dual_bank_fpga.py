@@ -53,10 +53,10 @@ def main() -> None:
     evidence = {
         'physical_fpga_verified': True, 'port': args.port,
         'motion_coefficient_sha256': hashlib.sha256(
-            Path(__file__).resolve().parents[1].joinpath('rtl/fir_coefficients.txt').read_bytes()
+            Path(__file__).resolve().parents[1].joinpath('hardware/rtl/fir_coefficients.txt').read_bytes()
         ).hexdigest(),
         'audio_coefficient_sha256': hashlib.sha256(
-            Path(__file__).resolve().parents[1].joinpath('rtl/audio_coefficients.txt').read_bytes()
+            Path(__file__).resolve().parents[1].joinpath('hardware/rtl/audio_coefficients.txt').read_bytes()
         ).hexdigest(),
         'cases': observations, 'elapsed_s': round(time.perf_counter() - started, 3),
         'note': 'A physical UART response was checked for every sample. This test does not measure video/image or subjective audio quality.',

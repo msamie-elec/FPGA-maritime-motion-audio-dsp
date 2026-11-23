@@ -32,7 +32,7 @@ def design() -> tuple[int, ...]:
 
 def generate(root: Path) -> None:
     coeff = design()
-    p = root / 'rtl' / 'audio_coefficients.txt'
+    p = root / 'hardware' / 'rtl' / 'audio_coefficients.txt'
     p.write_bytes(('# 16kHz speech LP 3200Hz, 17 taps, signed Q1.15, DC unity\n' +
                    ''.join(f'{x}\n' for x in coeff)).encode('utf-8'))
     lines = [
@@ -44,7 +44,7 @@ def generate(root: Path) -> None:
     for i, x in enumerate(coeff):
         lines.append(f"    5'd{i}: audio_coeff_at = " + (f"16'sd{x}" if x >= 0 else f"-16'sd{-x}") + ';')
     lines.extend(["    default: audio_coeff_at = 16'sd0;", '  endcase', 'endfunction', ''])
-    (root/'rtl'/'audio_coefficients.svh').write_bytes('\n'.join(lines).encode('utf-8'))
+    (root/'hardware'/'rtl'/'audio_coefficients.svh').write_bytes('\n'.join(lines).encode('utf-8'))
     print('AUDIO_FIR_COEFFICIENTS_GENERATED',list(coeff),'sum',sum(coeff))
 
 
