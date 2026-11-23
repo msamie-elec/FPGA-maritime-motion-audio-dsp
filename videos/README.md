@@ -1,12 +1,14 @@
-# Source videos and results
+# Original maritime test clips
 
-Place original or prepared, 30-fps compatible input MP4s directly in `videos/`.
-Do not put source material in `build/`, which is an expendable Vivado/temporary-work directory.
+Four owner-supplied AI-generated test inputs. Keep original filenames, bytes, watermarks and SHA-256 checksums; processing outputs go only to `videos/sim/` or `videos/hrd/`.
 
-- `videos/00_Maritime_Short_Original.mp4`
-- `videos/01_Maritime_Short_Original.mp4`
-- `videos/02_Maritime_Long_30s_With_Audio.mp4`
-- `videos/sim/<run-id>_software/`: each software-reference run and its evidence
-- `videos/hrd/<run-id>_hardware/`: actual hardware-returned data, verified bit-exact
+| File | Video | Audio | Purpose |
+|---|---|---|---|
+| `00_Maritime_Short_Original.mp4` | 5s · 640×360 | No | Simple animated maritime video-only test |
+| `01_Maritime_Short_Original.mp4` | 5s · 960×540 | No | Short ship/waves video-only test |
+| `02_Maritime_Long_30s_With_Audio.mp4` | 30.2s · 960×540 | Yes | Extended GUI video/audio, progress and cancellation |
+| `03_Unified_Quick_Test_3s.mp4` | 3s · 640×360 | Yes | Recommended short video+audio FPGA test |
 
-Output subfolders are ignored by Git, but are saved locally. Raw videos are user-provided AI-origin test assets; check redistribution rights before publishing those MP4 files to a public GitHub repository.
+Read [test instructions](../docs/VIDEO_TEST_MEDIA.md) and [SHA-256 manifest](VIDEO_TEST_MANIFEST.json) before reproducing results. **These are AI-generated test scenarios, not measured real-vessel footage.** Some retain Synthesia watermark/branding and AI-generated people; the repository's source-code MIT licence does not cover them automatically. Review the generator's licence and avatar/voice/music rights before using the media publicly or commercially.
+
+The binary videos are part of the separate media upload. Do not treat this README alone as proof that the videos are already available in the GitHub tree.

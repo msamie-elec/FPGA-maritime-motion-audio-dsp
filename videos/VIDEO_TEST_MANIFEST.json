@@ -1,0 +1,48 @@
+{
+  "schema_version": 1,
+  "source": "Four user-provided AI-generated maritime MP4 test clips (not actual sea-trial footage)",
+  "publish_status": "Binary MP4 files uploaded separately from this documentation commit",
+  "license_note": "Video rights are distinct from source-code MIT license; verify Synthesia/other generator distribution and commercial-use conditions before public redistribution.",
+  "files": [
+    {
+      "filename": "00_Maritime_Short_Original.mp4",
+      "duration_seconds": 5,
+      "width": 640,
+      "height": 360,
+      "contains_audio": false,
+      "bytes": 467934,
+      "sha256": "eea78122b261bfc83704e7fe94c324f1f8acc7d558bea2f786207346cf4c2c23",
+      "test": "Simple video-only synthetic horizon/vessel scene"
+    },
+    {
+      "filename": "01_Maritime_Short_Original.mp4",
+      "duration_seconds": 5,
+      "width": 960,
+      "height": 540,
+      "contains_audio": false,
+      "bytes": 1156137,
+      "sha256": "1013e35cf167bee927294237b7c6763703f08334c7faf16a1fc62666390b77fc",
+      "test": "Short cargo vessel scene, video-only; original tool watermark retained"
+    },
+    {
+      "filename": "02_Maritime_Long_30s_With_Audio.mp4",
+      "duration_seconds": 30.2,
+      "width": 960,
+      "height": 540,
+      "contains_audio": true,
+      "bytes": 4360200,
+      "sha256": "8e657f9eeba3f088c78d0b79bfa4040abe2999446690846daec2c212278ca294",
+      "test": "Long video+audio GUI processing and cancellation; nonreal-time"
+    },
+    {
+      "filename": "03_Unified_Quick_Test_3s.mp4",
+      "duration_seconds": 3,
+      "width": 640,
+      "height": 360,
+      "contains_audio": true,
+      "bytes": 414591,
+      "sha256": "678a85230f2f12ca2be2b4ec0b549f827594688afb307b8629abec758a48b008",
+      "test": "Fast combined video/audio FPGA FIR functional test"
+    }
+  ]
+}

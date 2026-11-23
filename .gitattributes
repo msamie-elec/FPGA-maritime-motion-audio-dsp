@@ -7,3 +7,5 @@
 *.json text eol=lf
 *.tcl text eol=lf
 *.ps1 text eol=crlf
+
+*.mp4 binary
