@@ -32,3 +32,19 @@ def test_source_archive_fallback_is_explicit(tmp_path):
 
 def test_no_measurement_without_csv(tmp_path):
     assert read_xadc(tmp_path)['status']=='NOT_MEASURED'
+
+
+def test_source_only_clone_preserves_screenshot_observations(tmp_path):
+    import shutil
+    from pathlib import Path
+    owner=tmp_path/'evidence/owner_2026-11-23_revd'
+    owner.mkdir(parents=True)
+    src=ROOT/'evidence/owner_2026-11-23_revd'
+    for fn in ('report_summary.json','owner_console_observations.json'):
+        shutil.copy(src/fn,owner/fn)
+    # No reference_2026-11-20/summary.json: GitHub source-only checkouts omit it.
+    result=collect(tmp_path)
+    assert result['physical_campaign']['reset']['passing_jobs']==80
+    assert result['physical_campaign']['cold']['passing_jobs']==40
+    assert result['physical_campaign']['soak']['passing_jobs']==4408
+    assert any(x['failed_jobs']==141 for x in result['physical_history'])
