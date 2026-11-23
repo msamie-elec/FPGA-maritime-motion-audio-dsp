@@ -1,0 +1,33 @@
+name: Verify maritime test MP4s
+
+on:
+  push:
+    paths:
+      - 'videos/*.mp4'
+      - 'videos/VIDEO_TEST_MANIFEST.json'
+  workflow_dispatch:
+
+jobs:
+  verify-original-media:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Verify all four uploaded MP4 checksums
+        run: |
+          python - <<'PY'
+          import json, hashlib, pathlib, sys
+          manifest = json.loads(pathlib.Path("videos/VIDEO_TEST_MANIFEST.json").read_text(encoding="utf-8"))
+          files = manifest.get("files", [])
+          if len(files) != 4:
+              sys.exit(f"FAIL: expected 4 entries, found {len(files)}")
+          for entry in files:
+              path = pathlib.Path("videos") / entry["filename"]
+              if not path.is_file():
+                  sys.exit(f"FAIL: missing {path}")
+              size = path.stat().st_size
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if size != entry["bytes"] or digest != entry["sha256"]:
+                  sys.exit(f"FAIL: size/hash mismatch {path}")
+              print(f"PASS {path}: {size} bytes, sha256 {digest}")
+          print("MARITIME_TEST_VIDEOS_VERIFIED_4_OF_4")
+          PY
